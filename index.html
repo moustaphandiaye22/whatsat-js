@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Watch App</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="src/style.css" />
+  <link rel="stylesheet" href="src/index.css" />
+  <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
+</head>
+
+<body class="bg-gray-100">
+  <div class="w-10/12 bg-gray-200 shadow-md m-10 mb-11 h-3/4 mx-auto rounded-xl">
+    <div class="flex h-screen">
+      
+      <!-- Sidebar -->
+      <aside class="w-40 bg-[#f0efe8] shadow-md overflow-y-auto">
+        <div class="mt-60 px-2">
+          <div id="btnMessage" class="p-4 border border-orange-300 rounded-xl shadow-md flex flex-col items-center mb-2 cursor-pointer hover:bg-gray-100">
+            <i class="fas fa-envelope text-xl"></i>
+            <span class="text-xs mt-1">Messages</span>
+          </div>
+          <div id="btnGroupe" class="p-4 border border-orange-300 rounded-xl shadow-md flex flex-col items-center mb-2 cursor-pointer hover:bg-gray-100">
+            <i class="fas fa-user-group text-xl"></i>
+            <span class="text-xs mt-1">Groupes</span>
+          </div>
+          <div id="btnDiffusion" class="p-4 border border-orange-300 rounded-xl shadow-md flex flex-col items-center mb-2 cursor-pointer hover:bg-gray-100">
+              <i class="fa-solid fa-arrows-turn-to-dots"></i>     
+                <span class="text-xs mt-1">Diffusion</span>
+          </div>
+          <div id="archivedContacts" class="p-4 border border-orange-300 rounded-xl shadow-md flex flex-col items-center mb-2 cursor-pointer hover:bg-gray-100">
+              <i class="fas fa-archive text-xl"></i>
+              <span class="text-xs mt-1">Archives</span>
+            </div>
+
+          <div id="btnNouveau" class="p-4 border border-orange-300 rounded-xl shadow-md flex flex-col items-center mb-2 cursor-pointer hover:bg-gray-100">
+            <i class="fas fa-plus text-xl"></i>
+            <span class="text-xs mt-1">Nouveau</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Liste des discussions -->
+      <aside class="w-2/5 bg-white shadow-md overflow-y-auto">
+        <div class="p-4 border-b">
+          <h2 class="text-xl font-bold">Discussions</h2>
+        </div>
+        <div class="p-4 border-b">
+          <input type="text" placeholder="Rechercher..." class="w-full p-2 border rounded-xl focus:outline-none" />
+        </div>
+        <div class="p-4">
+          <button type="button" id="contactList" class="px-4 py-1 bg-orange-400 text-white rounded-full hover:bg-orange-700 text-sm mb-2">Liste contact</button>
+          <button id="toggleGroupes" class="px-4 py-1 text-md font-semibold hover:underline  bg-orange-400 text-white rounded-full hover:bg-orange-700 text-sm  mb-2">
+            Liste des groupes </button>
+
+        <!-- Liste masquée au départ -->
+        <div id="listeGroupesContainer" class="hidden">
+          <ul id="listeGroupes" class="space-y-2"></ul>
+        </div>
+
+        </div>
+
+          <!-- Conteneur masqué par défaut -->
+          <div id="listeContactsContainer" >
+            <ul id="chats" class="divide-y">
+              <li class="p-4 hover:bg-gray-100 cursor-pointer flex items-center">
+                <img src="https://avatars.githubusercontent.com/u/12345678?v=4" alt="Avatar" class="w-8 h-8 rounded-full mr-2" />
+                <span>Tapha</span>
+              </li>
+              <li class="p-4 hover:bg-gray-100 cursor-pointer flex items-center">
+                <img src="https://avatars.githubusercontent.com/u/12345?v=4" alt="Avatar" class="w-8 h-8 rounded-full mr-2" />
+                <span>AWA</span>
+              </li>
+            </ul>
+          </div>
+
+
+        <!-- Formulaire contact -->
+        <div id="formContainer" class="p-4 border-t hidden">
+          <h3 class="text-md font-semibold mb-2">Ajouter un contact</h3>
+          <form id="formContact" class="space-y-2">
+            <input type="text" placeholder="Nom" class="w-full border p-2 rounded" />
+               <div class="text-red-500 text-sm" id="errorNomContact"></div>
+               <input type="text" placeholder="prenom" class="w-full border p-2 rounded" />
+               <div class="text-red-500 text-sm" id="errorPrenomContact"></div>
+
+              <input type="number" placeholder="Numéro" class="w-full border p-2 rounded" />
+               <div class="text-red-500 text-sm" id="errorNumeroContact"></div>
+
+            <div class="flex justify-end gap-2">
+              <button type="button" id="btnFermer" class="px-4 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm">Annuler</button>
+              <button type="submit" class="px-4 py-1 bg-orange-400 text-white rounded hover:bg-orange-500 text-sm">Ajouter</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Formulaire groupe -->
+        <div id="formGroupeContainer" class="p-4 border-t hidden">
+          <h3 class="text-md font-semibold mb-2">Créer un groupe</h3>
+          <form id="formGroupe" class="space-y-2">
+            <input type="text" placeholder="Nom du groupe" class="w-full border p-2 rounded" />
+            <div class="text-red-500 text-sm" id="errorNomGroupe"></div>
+
+            <textarea placeholder="Description" class="w-full border p-2 rounded"></textarea>
+            <div class="text-red-500 text-sm" id="errorDescriptionGroupe"></div>
+
+            <div id="groupeMembres" class="mt-2 space-y-1 max-h-40 overflow-y-auto border p-2 rounded bg-gray-50">
+                    <!-- Les contacts avec checkbox seront ajoutés dynamiquement ici -->
+                  </div>
+                  <div class="text-red-500 text-sm" id="errorMembresGroupe"></div>
+
+
+            <div class="flex justify-end gap-2">
+              <button type="button" id="btnFermerGroupe" class="px-4 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm">Annuler</button>
+              <button type="submit" class="px-4 py-1 bg-orange-400 text-white rounded hover:bg-orange-600 text-sm">Créer</button>
+            </div>
+          </form>
+        </div>
+      </aside>
+
+      <!-- Zone de chat -->
+      <main class="flex-1 flex flex-col bg-[#efe7d7]">
+        <header class="bg-white p-4 border-b flex items-center gap-2">
+          <img src="https://avatars.githubusercontent.com/u/12345?v=4" alt="Avatar" class="w-8 h-8 rounded-full mr-2" />
+          <span class="font-medium">Breukhhh</span>
+          <div class="ml-auto flex gap-3">
+            <i class='bx bxs-backspace border border-orange-300 text-orange-300 rounded-xl p-2'></i> 
+            <i id="archiveContactIcon" class="fas fa-archive cursor-pointer border border-gray-400 text-gray-400 rounded-xl p-2"></i>
+            <i class='bx bxs-square-rounded border border-black rounded-xl p-2'></i> 
+            <i class="fas fa-trash cursor-pointer border border-red-600 text-red-600 rounded-xl p-2"></i>
+          </div>
+        </header>
+
+        <section id="messages" class="flex-1 overflow-y-auto p-4 space-y-2 flex flex-col">
+          <!-- Messages dynamiques -->
+        </section>
+
+        <footer class="p-4 bg-white flex gap-2 border-t">
+          <input type="text" id="messageInput" placeholder="Écrire un message..." class="flex-1 p-2 border rounded-lg focus:outline-none" />
+          <button id="sendBtn" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
+            <i class="fas fa-arrow-right"></i>
+          </button>
+        </footer>
+      </main>
+
+    </div>
+  </div>
+<script  src="src/main.js"></script>
+<!-- <script src="src/controllers.js"></script> -->
+
+</body>
+</html>
