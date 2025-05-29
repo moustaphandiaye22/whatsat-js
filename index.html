@@ -48,7 +48,7 @@
           <h2 class="text-xl font-bold">Discussions</h2>
         </div>
         <div class="p-4 border-b">
-          <input type="text" placeholder="Rechercher..." class="w-full p-2 border rounded-xl focus:outline-none" />
+          <input type="text" id="search" placeholder="Rechercher..." class="w-full p-2 border rounded-xl focus:outline-none" />
         </div>
         <div class="p-4">
           <button type="button" id="contactList" class="px-4 py-1 bg-orange-400 text-white rounded-full hover:bg-orange-700 text-sm mb-2">Liste contact</button>
@@ -123,8 +123,10 @@
       <!-- Zone de chat -->
       <main class="flex-1 flex flex-col bg-[#efe7d7]">
         <header class="bg-white p-4 border-b flex items-center gap-2">
-          <img src="https://avatars.githubusercontent.com/u/12345?v=4" alt="Avatar" class="w-8 h-8 rounded-full mr-2" />
-          <span class="font-medium">Breukhhh</span>
+          <!-- <img src="https://avatars.githubusercontent.com/u/12345?v=4" alt="Avatar" class="w-8 h-8 rounded-full mr-2" /> -->
+          <!-- <span class="font-medium">Breukhhh</span> -->
+           <h2 id="chatTitle" class="text-xl font-semibold mb-4">Chat</h2>
+
           <div class="ml-auto flex gap-3">
             <i class='bx bxs-backspace border border-orange-300 text-orange-300 rounded-xl p-2'></i> 
             <i id="archiveContactIcon" class="fas fa-archive cursor-pointer border border-gray-400 text-gray-400 rounded-xl p-2"></i>

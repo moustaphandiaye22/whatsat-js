@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
   const botReplies = [
     "Salut ! Comment ça va ?",
+    "tayy gen dead dhi",
     "Haha, intéressant", 
     "Tu veux en parler plus ?",
     "Je suis juste un bot",
@@ -19,6 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let groupes = [];
   let selectedContact = null;
   let currentView = 'contacts';
+  let selectedGroup = null;
 
   // ===========================
   // CHAT - FONCTIONS
@@ -40,15 +42,86 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function sendMessage() {
-    const messageInput = document.getElementById("messageInput");
-    const text = messageInput.value.trim();
-    if (text) {
-      addMessage(text, 'user');
-      messageInput.value = "";
-      simulateBotResponse();
-    }
+  const messageInput = document.getElementById("messageInput");
+  const text = messageInput.value.trim();
+  if (!text) return;
+
+  if (selectedContact) {
+    addMessage(`[À ${selectedContact.nom} ${selectedContact.prenom}] ${text}`, 'user');
+  } else if (selectedGroup) {
+    addMessage(`[Au groupe ${selectedGroup.nom}] ${text}`, 'user');
+  } else {
+    showNotification("Sélectionnez un contact ou un groupe", "warning");
+    return;
   }
 
+  messageInput.value = "";
+  simulateBotResponse();
+}
+function afficherNomEnHaut() {
+  const titre = document.getElementById("chatTitle");
+  if (!titre) return;
+
+  if (selectedContact) {
+    // Pour un contact individuel
+    const initials = `${selectedContact.nom[0] || ''}${selectedContact.prenom[0] || ''}`.toUpperCase();
+    titre.innerHTML = `
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-semibold">
+          ${initials}
+        </div>
+        <div>
+          <h3 class="font-semibold text-lg">${selectedContact.nom} ${selectedContact.prenom}</h3>
+          <p class="text-sm text-gray-500">${selectedContact.numero}</p>
+        </div>
+      </div>
+    `;
+  } else if (selectedGroup) {
+    // Pour un groupe
+    const groupInitials = `${selectedGroup.nom[0] || ''}`.toUpperCase();
+    const membresSimples = selectedGroup.membres.filter(m => !selectedGroup.admins.includes(m));
+    
+    titre.innerHTML = `
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-full bg-purple-500 text-white flex items-center justify-center font-semibold">
+          ${groupInitials}
+        </div>
+        <div class="flex-1">
+          <h3 class="font-semibold text-lg flex items-center">
+            ${selectedGroup.nom}
+          </h3>
+          <div class="text-sm text-gray-600">
+            <div class="flex flex-wrap gap-2 mt-1">
+              ${selectedGroup.admins.map(admin => `
+                <span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs flex items-center">
+                  <i class="fas fa-crown mr-1"></i>${admin}
+                </span>
+              `).join('')}
+              ${membresSimples.map(membre => `
+                <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs flex items-center">
+                  <i class="fas fa-user mr-1"></i>${membre}
+                </span>
+              `).join('')}
+            </div>
+            <p class="text-xs text-gray-400 mt-1">
+              ${selectedGroup.membres.length} membre(s) • ${selectedGroup.admins.length} admin(s)
+            </p>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    // Aucune sélection
+    titre.innerHTML = `
+      <div class="flex items-center justify-center h-16">
+        <div class="text-center text-gray-500">
+          <i class="fas fa-comments text-2xl mb-2"></i>
+          <p class="text-sm">Sélectionnez un contact ou un groupe</p>
+        </div>
+      </div>
+    `;
+  }
+}
   // ===========================
   // UTILITAIRES
   // ===========================
@@ -159,19 +232,20 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
          <button class="text-sm text-orange-600 hover:bg-orange-100 px-2 py-1 rounded archive-btn">Archiver</button>
       `;
-
+      
       li.querySelector('.archive-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         archiverContact(c);
       });
 
       li.addEventListener('click', (e) => {
-        if (e.target.classList.contains('archive-btn')) return;
-        document.querySelectorAll('#chats li').forEach(el => el.classList.remove('bg-orange-100'));
-        li.classList.add('bg-orange-100');
-        selectedContact = c;
-      });
-
+          if (e.target.classList.contains('archive-btn')) return;
+          document.querySelectorAll('#chats li').forEach(el => el.classList.remove('bg-orange-100'));
+          li.classList.add('bg-orange-100');
+          selectedContact = c;
+          selectedGroup = null;
+          afficherNomEnHaut();
+        });
       liste.appendChild(li);
     });
   }
@@ -183,8 +257,8 @@ document.addEventListener("DOMContentLoaded", () => {
     liste.innerHTML = '';
     const archives = contacts.filter(c => c.archive);
 
-    // En-tête
     const header = document.createElement('li');
+
     header.className = 'p-4 bg-gray-200 border-b sticky top-0';
     header.innerHTML = `
       <div class="flex justify-between items-center">
@@ -196,6 +270,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </button>
       </div>
     `;
+
     liste.appendChild(header);
 
     header.querySelector('.retour-btn').addEventListener('click', () => {
@@ -216,20 +291,26 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    archives.forEach(c => {
-      const li = document.createElement('li');
-      li.className = 'p-4 hover:bg-gray-50 flex justify-between items-center border-b';
-      li.innerHTML = `
-        <div class="flex items-center">
-          <img src="https://avatars.githubusercontent.com/u/12345678?v=4" class="w-10 h-10 rounded-full mr-3 opacity-60">
-          <div>
-            <span class="text-gray-800 font-medium">${c.nom} ${c.prenom}</span>
-            <p class="text-sm text-gray-500">${c.numero}</p>
-            <span class="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full mt-1 inline-block">
-              <i class="fas fa-archive mr-1"></i>Archivé
-            </span>
+          archives.forEach(c => {
+        const li = document.createElement('li');
+        li.className = 'p-4 hover:bg-gray-50 flex justify-between items-center border-b';
+        
+        // CORRECTION : Utiliser les initiales au lieu d'un avatar statique
+        const initials = `${c.nom[0] || ''}${c.prenom[0] || ''}`.toUpperCase();
+        
+        li.innerHTML = `
+          <div class="flex items-center">
+            <div class="w-10 h-10 rounded-full bg-gray-400 text-white flex items-center justify-center mr-3 font-semibold opacity-60">
+              ${initials}
+            </div>
+            <div>
+              <span class="text-gray-800 font-medium">${c.nom} ${c.prenom}</span>
+              <p class="text-sm text-gray-500">${c.numero}</p>
+              <span class="text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded-full mt-1 inline-block">
+                <i class="fas fa-archive mr-1"></i>Archivé
+              </span>
+            </div>
           </div>
-        </div>
         <div class="flex gap-2">
           <button class="text-sm text-green-600 hover:bg-green-100 px-3 py-1 rounded border border-green-300 restore-btn">
             <i class="fas fa-undo mr-1"></i>Restaurer
@@ -260,7 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
       });
-
+      
       liste.appendChild(li);
     });
   }
@@ -269,131 +350,210 @@ document.addEventListener("DOMContentLoaded", () => {
   // GROUPES - GESTION
   // ===========================
   
-  function chargerMembresGroupe() {
-    const membresDiv = document.getElementById('groupeMembres');
-    membresDiv.innerHTML = '';
+        function chargerMembresGroupe() {
+        const membresDiv = document.getElementById('groupeMembres');
+        membresDiv.innerHTML = '';
+        const actifs = contacts.filter(c => !c.archive);
+        if (actifs.length === 0) {
+          membresDiv.innerHTML = '<p class="text-gray-500">Aucun contact disponible.</p>';
+          return;
+        }
 
-    const actifs = contacts.filter(c => !c.archive);
-    if (actifs.length === 0) {
-      membresDiv.innerHTML = '<p class="text-gray-500">Aucun contact disponible.</p>';
-      return;
-    }
-
-    actifs.forEach((contact, i) => {
-      const div = document.createElement('div');
-      div.className = 'flex items-center space-x-2';
-      div.innerHTML = `
-        <input type="checkbox" id="membre-${i}" value="${contact.nom}" />
-        <label for="membre-${i}">${contact.nom} ${contact.prenom} (${contact.numero})</label>
-      `;
-      membresDiv.appendChild(div);
-    });
-  }
+        actifs.forEach((contact, i) => {
+          const div = document.createElement('div');
+          div.className = 'flex items-center justify-between space-x-2 p-2 border rounded mb-2';
+          div.innerHTML = `
+            <div class="flex items-center space-x-2">
+              <input type="checkbox" id="membre-${i}" value="${contact.nom}" class="membre-checkbox" />
+              <label for="membre-${i}" class="font-medium">${contact.nom} ${contact.prenom}</label>
+              <span class="text-xs text-gray-500">(${contact.numero})</span>
+            </div>
+            <div class="flex items-center space-x-2">
+              <select id="role-${i}" class="text-xs border rounded px-2 py-1 role-select" disabled>
+                <option value="membre">👤 Membre</option>
+                <option value="admin">👑 Admin</option>
+              </select>
+            </div>
+          `;
+          
+          // Activer/désactiver le select selon la checkbox
+          const checkbox = div.querySelector(`#membre-${i}`);
+          const roleSelect = div.querySelector(`#role-${i}`);
+          
+          checkbox.addEventListener('change', () => {
+            roleSelect.disabled = !checkbox.checked;
+            if (!checkbox.checked) {
+              roleSelect.value = 'membre';
+            }
+          });
+          
+          membresDiv.appendChild(div);
+        });
+      }
 
   function addGroupe() {
-    clearGroupErrors();
-    const form = document.getElementById('formGroupe');
-    const nomGroupe = form.querySelector('input[type="text"]').value.trim();
-    const description = form.querySelector('textarea').value.trim();
+  clearGroupErrors();
+  const form = document.getElementById('formGroupe');
+  const nomGroupe = form.querySelector('input[type="text"]').value.trim();
+  const description = form.querySelector('textarea').value.trim();
 
-    if (!nomGroupe) {
-      document.getElementById('errorNomGroupe').innerText = "Le nom du groupe est obligatoire.";
-      return;
-    }
-    if (groupes.some(g => g.nom === nomGroupe)) {
-      document.getElementById('errorNomGroupe').innerText = "Ce groupe existe déjà.";
-      return;
-    }
-    if (description.length > 200) {
-      document.getElementById('errorDescriptionGroupe').innerText = "Description trop longue (max 200 caractères).";
-      return;
-    }
-
-    const checked = document.querySelectorAll('#groupeMembres input:checked');
-    if (checked.length < 2) {
-      document.getElementById('errorMembresGroupe').innerText = "Minimum 2 membres requis.";
-      return;
-    }
-
-    const membres = Array.from(checked).map(cb => cb.value);
-    groupes.push({ nom: nomGroupe, description, membres, date: new Date().toLocaleDateString() });
-    
-    form.reset();
-    document.getElementById('formGroupeContainer').classList.add('hidden');
-    if (currentView === 'groups') afficherGroupes();
+  if (!nomGroupe) {
+    document.getElementById('errorNomGroupe').innerText = "Le nom du groupe est obligatoire.";
+    return;
   }
+  if (groupes.some(g => g.nom === nomGroupe)) {
+    document.getElementById('errorNomGroupe').innerText = "Ce groupe existe déjà.";
+    return;
+  }
+  if (description.length > 200) {
+    document.getElementById('errorDescriptionGroupe').innerText = "Description trop longue (max 200 caractères).";
+    return;
+  }
+
+  const checked = document.querySelectorAll('#groupeMembres input:checked');
+  if (checked.length < 2) {
+    document.getElementById('errorMembresGroupe').innerText = "Minimum 2 membres requis.";
+    return;
+  }
+
+  // Récupérer les membres avec leurs rôles
+  const membres = [];
+  const admins = [];
+  
+  checked.forEach(checkbox => {
+    const index = checkbox.id.split('-')[1];
+    const roleSelect = document.getElementById(`role-${index}`);
+    const memberName = checkbox.value;
+    
+    membres.push(memberName);
+    if (roleSelect.value === 'admin') {
+      admins.push(memberName);
+    }
+  });
+
+  // Vérifier qu'il y a au moins un admin
+  if (admins.length === 0) {
+    document.getElementById('errorMembresGroupe').innerText = "Au moins un administrateur est requis.";
+    return;
+  }
+
+  groupes.push({ 
+    nom: nomGroupe, 
+    description, 
+    membres, 
+    admins, // Nouvelle propriété
+    date: new Date().toLocaleDateString() 
+  });
+  
+  form.reset();
+  document.getElementById('formGroupeContainer').classList.add('hidden');
+  if (currentView === 'groups') afficherGroupes();
+  showNotification(`Groupe créé avec ${admins.length} admin(s) et ${membres.length - admins.length} membre(s)`, 'success');
+}
 
   function afficherGroupes() {
-    const listeGroupes = document.getElementById('listeGroupes');
-    if (!listeGroupes) return;
-    
-    listeGroupes.innerHTML = '';
-    
-    if (groupes.length === 0) {
-      listeGroupes.innerHTML = '<li class="p-4"><p class="text-gray-400">Aucun groupe créé.</p></li>';
-      return;
-    }
-
-    groupes.forEach((groupe, i) => {
-      const li = document.createElement('li');
-      li.className = 'p-3 bg-white shadow rounded flex justify-between items-center mb-2';
-      const initials = `${groupe.nom[0] || ''}`.toUpperCase();
-      li.innerHTML = `
-        <div class="flex items-center space-x-2">
-          <div class="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-semibold">
-            ${initials}
-          </div>
-          <div>
-            <p class="font-semibold">${groupe.nom}</p>
-            <p class="text-sm text-gray-500">${groupe.description}</p>
-            <p class="text-xs text-blue-500">Membres : ${groupe.membres.join(', ')}</p>
-          </div>
-        </div>
-        <div class="flex flex-col items-end">
-          <p class="text-xs text-gray-400">${groupe.date}</p>
-          <div class="flex gap-1 mt-1">
-            <button class="text-blue-600 hover:text-blue-800 p-1 edit-btn" data-index="${i}">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="text-red-500 hover:text-red-700 p-1 delete-btn" data-index="${i}">
-              <i class="fas fa-trash-alt"></i>
-            </button>
-          </div>
-        </div>
-      `;
-
-      li.querySelector('.edit-btn').addEventListener('click', () => {
-        const groupe = groupes[i];
-        document.getElementById('formGroupeContainer').classList.remove('hidden');
-        document.getElementById('formContainer').classList.add('hidden');
-        document.getElementById('formGroupeContainer').scrollIntoView({ behavior: 'smooth' });
-
-        document.getElementById('formGroupe').querySelector('input[type="text"]').value = groupe.nom;
-        document.getElementById('formGroupe').querySelector('textarea').value = groupe.description;
-
-        chargerMembresGroupe();
-        setTimeout(() => {
-          document.querySelectorAll('#groupeMembres input[type="checkbox"]').forEach(cb => {
-            if (groupe.membres.includes(cb.value)) cb.checked = true;
-          });
-        }, 100);
-
-        groupes.splice(i, 1);
-      });
-
-      li.querySelector('.delete-btn').addEventListener('click', () => {
-        if (confirm('Êtes-vous sûr de vouloir supprimer ce groupe ?')) {
-          groupes.splice(i, 1);
-          afficherGroupes();
-        }
-      });
-
-      listeGroupes.appendChild(li);
-    });
+  const listeGroupes = document.getElementById('listeGroupes');
+  if (!listeGroupes) return;
+  
+  listeGroupes.innerHTML = '';
+  
+  if (groupes.length === 0) {
+    listeGroupes.innerHTML = '<li class="p-4"><p class="text-gray-400">Aucun groupe créé.</p></li>';
+    return;
   }
 
+  groupes.forEach((groupe, i) => {
+    const li = document.createElement('li');
+    li.className = 'p-3 bg-white shadow rounded flex justify-between items-center mb-2';
+    const initials = `${groupe.nom[0] || ''}`.toUpperCase();
+    
+    // Séparer admins et membres simples
+    const membresSimples = groupe.membres.filter(m => !groupe.admins.includes(m));
+    
+    li.innerHTML = `
+      <div class="flex items-center space-x-2 flex-1">
+        <div class="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center font-semibold">
+          ${initials}
+        </div>
+        <div class="flex-1">
+          <p class="font-semibold">${groupe.nom}</p>
+          <p class="text-sm text-gray-500">${groupe.description}</p>
+          <div class="text-xs mt-1">
+            <p class="text-red-600">👑 Admins: ${groupe.admins.join(', ')}</p>
+            ${membresSimples.length > 0 ? `<p class="text-blue-600">👤 Membres: ${membresSimples.join(', ')}</p>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-col items-end">
+        <p class="text-xs text-gray-400">${groupe.date}</p>
+        <div class="flex gap-1 mt-1">
+          <button class="text-green-600 hover:text-green-800 p-1 manage-btn" data-index="${i}" title="Gérer les rôles">
+            <i class="fas fa-users-cog"></i>
+          </button>
+          <button class="text-blue-600 hover:text-blue-800 p-1 edit-btn" data-index="${i}">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="text-red-500 hover:text-red-700 p-1 delete-btn" data-index="${i}">
+            <i class="fas fa-trash-alt"></i>
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Bouton pour gérer les rôles
+    li.querySelector('.manage-btn').addEventListener('click', () => {
+      ouvrirGestionRoles(groupe, i);
+    });
+
+    // Modifier le bouton d'édition pour prendre en compte les rôles
+    li.querySelector('.edit-btn').addEventListener('click', () => {
+      const groupe = groupes[i];
+      document.getElementById('formGroupeContainer').classList.remove('hidden');
+      document.getElementById('formContainer').classList.add('hidden');
+      document.getElementById('formGroupeContainer').scrollIntoView({ behavior: 'smooth' });
+
+      document.getElementById('formGroupe').querySelector('input[type="text"]').value = groupe.nom;
+      document.getElementById('formGroupe').querySelector('textarea').value = groupe.description;
+
+      chargerMembresGroupe();
+      setTimeout(() => {
+        document.querySelectorAll('#groupeMembres input[type="checkbox"]').forEach((cb, index) => {
+          if (groupe.membres.includes(cb.value)) {
+            cb.checked = true;
+            const roleSelect = document.getElementById(`role-${index}`);
+            roleSelect.disabled = false;
+            roleSelect.value = groupe.admins.includes(cb.value) ? 'admin' : 'membre';
+          }
+        });
+      }, 100);
+
+      groupes.splice(i, 1);
+    });
+
+    li.querySelector('.delete-btn').addEventListener('click', () => {
+      if (confirm('Êtes-vous sûr de vouloir supprimer ce groupe ?')) {
+        groupes.splice(i, 1);
+        afficherGroupes();
+      }
+    });
+    
+    li.addEventListener('click', (e) => {
+      if (e.target.closest('.manage-btn') || e.target.closest('.edit-btn') || e.target.closest('.delete-btn')) return;
+      
+      document.querySelectorAll('#listeGroupes li').forEach(el => el.classList.remove('bg-purple-100'));
+      li.classList.add('bg-purple-100');
+      
+      selectedGroup = groupe;
+      selectedContact = null;
+      afficherNomEnHaut();
+    });
+    
+    listeGroupes.appendChild(li);
+  });
+}
+
   // ===========================
-  // DIFFUSION
+  // DIFFUSION - VERSION MODIFIÉE
   // ===========================
   
   function creerInterfaceDiffusion() {
@@ -403,79 +563,172 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    let diffusionSection = document.getElementById('diffusionSection');
-    if (!diffusionSection) {
-      diffusionSection = document.createElement('div');
-      diffusionSection.id = 'diffusionSection';
-      diffusionSection.className = 'bg-white rounded-lg shadow p-4 mb-4';
-      
-      const contactsSection = document.querySelector('.contacts-section') || document.querySelector('main') || document.body;
-      contactsSection.appendChild(diffusionSection);
+    // Chercher la zone de discussion et la barre de recherche
+    const chatContainer = document.querySelector('.chat-container') || 
+                         document.querySelector('#chatArea') || 
+                         document.querySelector('[class*="chat"]') ||
+                         document.querySelector('[class*="discussion"]');
+    
+    const searchBar = document.querySelector('input[type="search"]') || 
+                     document.querySelector('[placeholder*="recherche" i]') ||
+                     document.querySelector('[placeholder*="search" i]');
+
+    let targetContainer;
+    if (searchBar && chatContainer) {
+      targetContainer = searchBar.parentElement;
+    } else if (chatContainer) {
+      targetContainer = chatContainer;
+    } else {
+      targetContainer = document.querySelector('#messages')?.parentElement ||
+                       document.querySelector('.messages')?.parentElement ||
+                       document.querySelector('main') ||
+                       document.body;
     }
 
+    const existingDiffusion = document.getElementById('diffusionSection');
+    if (existingDiffusion) {
+      existingDiffusion.remove();
+    }
+
+    // Créer la nouvelle interface de diffusion
+    const diffusionSection = document.createElement('div');
+    diffusionSection.id = 'diffusionSection';
+    diffusionSection.className = 'bg-white rounded-lg shadow border p-4 mb-4 mx-2';
+    
     diffusionSection.innerHTML = `
-      <h3 class="text-lg font-semibold mb-4">
-        <i class="fas fa-broadcast-tower mr-2 text-orange-500"></i>Diffusion de message
-      </h3>
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold flex items-center">
+          <i class="fas fa-broadcast-tower mr-2 text-orange-500"></i>Diffusion de message
+        </h3>
+        <button id="fermerDiffusion" class="text-gray-500 hover:text-gray-700 p-1">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
       <div class="mb-4">
-        <h4 class="font-medium mb-2">Sélectionner les contacts :</h4>
-        <div class="space-y-2 max-h-48 overflow-y-auto">
+        <h4 class="font-medium mb-2 text-sm">Sélectionner les contacts :</h4>
+        <div class="space-y-1 max-h-32 overflow-y-auto border rounded p-2 bg-gray-50">
+          <label class="flex items-center p-1 hover:bg-white rounded cursor-pointer text-sm">
+            <input type="checkbox" id="selectAll" class="mr-2">
+            <strong>Tout sélectionner</strong>
+          </label>
+          <hr class="my-1">
           ${contactsActifs.map((contact, index) => `
-            <label class="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
-              <input type="checkbox" value="${index}" class="contact-checkbox mr-3">
+            <label class="flex items-center p-1 hover:bg-white rounded cursor-pointer text-sm">
+              <input type="checkbox" value="${index}" class="contact-checkbox mr-2">
+              <div class="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center mr-2 text-xs font-semibold">
+                ${(contact.nom[0] || '') + (contact.prenom[0] || '')}
+              </div>
               <span>${contact.nom} ${contact.prenom}</span>
             </label>
           `).join('')}
         </div>
       </div>
+      
       <div class="mb-4">
-        <textarea id="messageDiffusion" placeholder="Votre message..." 
-                  class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-orange-500" rows="3"></textarea>
+        <textarea id="messageDiffusion" placeholder="Tapez votre message de diffusion ici..." 
+                  class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" 
+                  rows="3"></textarea>
+        <div class="text-xs text-gray-500 mt-1">
+          <span id="caractereCount">0</span>/500 caractères
+        </div>
       </div>
-      <div class="flex gap-2">
-        <button id="annulerDiffusion" class="px-4 py-2 border rounded hover:bg-gray-50">Annuler</button>
-        <button id="confirmerDiffusion" class="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600">Envoyer</button>
+      
+      <div class="flex gap-2 justify-end">
+        <button id="annulerDiffusion" class="px-4 py-2 border rounded hover:bg-gray-50 text-sm">
+          <i class="fas fa-times mr-1"></i>Annuler
+        </button>
+        <button id="confirmerDiffusion" class="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm">
+          <i class="fas fa-paper-plane mr-1"></i>Envoyer
+        </button>
       </div>
     `;
 
+    // Insérer l'interface dans le bon endroit
+    if (searchBar) {
+      searchBar.parentElement.insertBefore(diffusionSection, searchBar.nextSibling);
+    } else {
+      targetContainer.insertBefore(diffusionSection, targetContainer.firstChild);
+    }
+
+    const messageTextarea = document.getElementById('messageDiffusion');
+    const caractereCount = document.getElementById('caractereCount');
+    
+    messageTextarea.addEventListener('input', () => {
+      const length = messageTextarea.value.length;
+      caractereCount.textContent = length;
+      if (length > 500) {
+        caractereCount.className = 'text-red-500 font-semibold';
+        messageTextarea.classList.add('border-red-500');
+      } else {
+        caractereCount.className = 'text-gray-500';
+        messageTextarea.classList.remove('border-red-500');
+      }
+    });
+
+    // Gestion de "Tout sélectionner"
+    const selectAllCheckbox = document.getElementById('selectAll');
+    const contactCheckboxes = document.querySelectorAll('.contact-checkbox');
+    
+    selectAllCheckbox.addEventListener('change', () => {
+      contactCheckboxes.forEach(checkbox => {
+        checkbox.checked = selectAllCheckbox.checked;
+      });
+    });
+
+    contactCheckboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', () => {
+        const checkedCount = Array.from(contactCheckboxes).filter(cb => cb.checked).length;
+        selectAllCheckbox.checked = checkedCount === contactCheckboxes.length;
+        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < contactCheckboxes.length;
+      });
+    });
+
+    // Événements pour les boutons
+    document.getElementById('fermerDiffusion').addEventListener('click', () => diffusionSection.remove());
     document.getElementById('annulerDiffusion').addEventListener('click', () => diffusionSection.remove());
     
     document.getElementById('confirmerDiffusion').addEventListener('click', () => {
-      const message = document.getElementById('messageDiffusion').value.trim();
+      const message = messageTextarea.value.trim();
       const contactsSelectionnes = [];
       
-      document.querySelectorAll('.contact-checkbox').forEach((checkbox, index) => {
+      contactCheckboxes.forEach((checkbox, index) => {
         if (checkbox.checked) contactsSelectionnes.push(contactsActifs[index]);
       });
 
       if (contactsSelectionnes.length === 0) {
-        alert("Sélectionnez au moins un contact.");
+        showNotification("Sélectionnez au moins un contact.", 'warning');
         return;
       }
       if (!message) {
-        alert("Entrez un message.");
-        document.getElementById('messageDiffusion').focus();
+        showNotification("Entrez un message.", 'warning');
+        messageTextarea.focus();
+        return;
+      }
+      if (message.length > 500) {
+        showNotification("Message trop long (max 500 caractères).", 'warning');
         return;
       }
 
+      // Simuler l'envoi des messages
       contactsSelectionnes.forEach(contact => {
         if (typeof addMessage === 'function') {
-          addMessage(`Diffusion à ${contact.nom} ${contact.prenom}: ${message}`, 'user');
+          addMessage(` envoyer à ${contact.nom} ${contact.prenom}: ${message}`, 'user');
         }
       });
 
-      showNotification(`Message envoyé à ${contactsSelectionnes.length} contact(s)`, 'success');
+      showNotification(`Message diffusé à ${contactsSelectionnes.length} contact(s)`, 'success');
       diffusionSection.remove();
     });
-
-    document.getElementById('messageDiffusion').focus();
+    messageTextarea.focus();
+    
+    diffusionSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   // ===========================
   // ÉVÉNEMENTS PRINCIPAUX
   // ===========================
   
-  // Chat
   document.getElementById("sendBtn")?.addEventListener("click", sendMessage);
   document.getElementById("messageInput")?.addEventListener("keydown", e => {
     if (e.key === "Enter") sendMessage();
@@ -516,6 +769,9 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     addGroupe();
   });
+  document.getElementById('btnDiffusion')?.addEventListener('click', () => {
+    creerInterfaceDiffusion();
+  });
 
   // Navigation
   document.getElementById('contactList')?.addEventListener('click', () => {
@@ -539,7 +795,6 @@ document.addEventListener("DOMContentLoaded", () => {
     afficherArchives();
   });
 
-  // Archivage depuis l'en-tête
   document.getElementById('archiveContactIcon')?.addEventListener('click', () => {
     if (selectedContact && !selectedContact.archive) {
       archiverContact(selectedContact);
@@ -549,10 +804,48 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Diffusion
-  document.getElementById('btnDiffusion')?.addEventListener('click', creerInterfaceDiffusion);
-
-  // Initialisation
+const searchInput = document.getElementById('search');
+searchInput?.addEventListener('input', () => {
+  const query = searchInput.value.toLowerCase().trim();
+  const contactsList = document.querySelectorAll('#chats li');
+  const chatsContainer = document.getElementById('chats');
+  
+  if (query === '*') {
+    const contactsArray = Array.from(contactsList);
+    
+    contactsArray.sort((a, b) => {
+      const nameA = a.querySelector('span')?.textContent || a.textContent;
+      const nameB = b.querySelector('span')?.textContent || b.textContent;
+      return nameA.localeCompare(nameB, 'fr', { sensitivity: 'base' });
+    });
+    
+    contactsArray.forEach(contact => {
+      contact.style.display = '';
+      chatsContainer.appendChild(contact);
+    });
+    
+    showNotification("Contacts triés par ordre alphabétique", 'info');
+  }
+  else {
+    contactsList.forEach(contact => {
+      const contactName = contact.textContent.toLowerCase();
+      
+      if (query === '' || contactName.includes(query)) {
+        contact.style.display = '';
+      }
+      else {
+        contact.style.display = 'none';
+      }
+    });
+        if (query === '') {
+      if (currentView === 'contacts') afficherContacts();
+      else if (currentView === 'archives') afficherArchives();
+    }
+  }
+});
+  // Afficher les contacts par défaut
   afficherContacts();
-  currentView = 'contacts';
+  currentView = 'contacts';  
+
+  
 });
