@@ -21,7 +21,8 @@ document.addEventListener("DOMContentLoaded", () => {
   let selectedContact = null;
   let currentView = 'contacts';
   let selectedGroup = null;
-
+let diffusionActive = false;
+let contactsSelectionnes = [];
   // ===========================
   // CHAT - FONCTIONS
   // ===========================
@@ -46,6 +47,50 @@ document.addEventListener("DOMContentLoaded", () => {
   const text = messageInput.value.trim();
   if (!text) return;
 
+  // NOUVEAU : Gestion du mode diffusion
+  if (diffusionActive && contactsSelectionnes.length > 0) {
+    // Afficher le message de diffusion dans le chat
+    addMessage(` Diffusion vers ${contactsSelectionnes.length} contact(s): ${text}`, 'user');
+    
+    // Simuler l'envoi à chaque contact
+    contactsSelectionnes.forEach((contact, index) => {
+      setTimeout(() => {
+        addMessage(` Envoyé à ${contact.nom} ${contact.prenom}`, 'bot');
+      }, (index + 1) * 200);
+    });
+
+    messageInput.value = "";
+    
+    // Désactiver le mode diffusion après envoi
+    setTimeout(() => {
+      diffusionActive = false;
+      contactsSelectionnes = [];
+      
+      // Supprimer l'interface de diffusion
+      const diffusionSection = document.getElementById('diffusionSection');
+      if (diffusionSection) diffusionSection.remove();
+      
+      // Restaurer l'interface normale
+      const messagesContainer = document.getElementById("messages");
+      if (messagesContainer) {
+        messagesContainer.innerHTML = `
+          <div class="text-center p-4 text-gray-500">
+            <i class="fas fa-comments text-2xl mb-2"></i>
+            <p class="text-sm">Sélectionnez un contact ou un groupe pour commencer une conversation</p>
+          </div>
+        `;
+      }
+      
+      messageInput.placeholder = "Tapez votre message...";
+      afficherNomEnHaut();
+      
+      showNotification("Diffusion terminée avec succès", 'success');
+    }, contactsSelectionnes.length * 200 + 500);
+    
+    return;
+  }
+
+  // ANCIEN CODE : Logique normale pour contacts/groupes
   if (selectedContact) {
     addMessage(`[À ${selectedContact.nom} ${selectedContact.prenom}] ${text}`, 'user');
   } else if (selectedGroup) {
@@ -431,7 +476,6 @@ function afficherNomEnHaut() {
     }
   });
 
-  // Vérifier qu'il y a au moins un admin
   if (admins.length === 0) {
     document.getElementById('errorMembresGroupe').innerText = "Au moins un administrateur est requis.";
     return;
@@ -557,173 +601,211 @@ function afficherNomEnHaut() {
   // ===========================
   
   function creerInterfaceDiffusion() {
-    const contactsActifs = contacts.filter(c => !c.archive);
-    if (contactsActifs.length === 0) {
-      showNotification("Aucun contact disponible pour la diffusion.", 'info');
+  const contactsActifs = contacts.filter(c => !c.archive);
+  if (contactsActifs.length === 0) {
+    showNotification("Aucun contact disponible pour la diffusion.", 'info');
+    return;
+  }
+
+  // Supprimer l'interface existante si elle existe
+  const existingDiffusion = document.getElementById('diffusionSection');
+  if (existingDiffusion) {
+    existingDiffusion.remove();
+  }
+
+  // Créer l'interface de diffusion dans la partie discussion (sidebar)
+  const chatsContainer = document.getElementById('chats');
+  if (!chatsContainer) return;
+
+  const diffusionSection = document.createElement('div');
+  diffusionSection.id = 'diffusionSection';
+  diffusionSection.className = 'bg-orange-50 border border-orange-200 rounded-lg p-3 mb-2 mx-2';
+  
+  diffusionSection.innerHTML = `
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-sm font-semibold flex items-center text-orange-700">
+        <i class="fas fa-broadcast-tower mr-2"></i>Diffusion
+      </h3>
+      <button id="fermerDiffusion" class="text-gray-500 hover:text-gray-700 p-1">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    
+    <div class="mb-3">
+      <h4 class="font-medium mb-2 text-xs text-gray-700">Contacts :</h4>
+      <div class="space-y-1 max-h-40 overflow-y-auto border rounded p-2 bg-white">
+        <label class="flex items-center p-1 hover:bg-gray-50 rounded cursor-pointer text-xs">
+          <input type="checkbox" id="selectAll" class="mr-2">
+          <strong>Tout sélectionner</strong>
+        </label>
+        <hr class="my-1">
+        ${contactsActifs.map((contact, index) => `
+          <label class="flex items-center p-1 hover:bg-gray-50 rounded cursor-pointer text-xs">
+            <input type="checkbox" value="${index}" class="contact-checkbox mr-2">
+            <div class="w-5 h-5 rounded-full bg-orange-500 text-white flex items-center justify-center mr-2 text-xs font-semibold">
+              ${(contact.nom[0] || '') + (contact.prenom[0] || '')}
+            </div>
+            <span class="truncate">${contact.nom} ${contact.prenom}</span>
+          </label>
+        `).join('')}
+      </div>
+    </div>
+    
+    <div class="flex gap-2">
+      <button id="annulerDiffusion" class="flex-1 px-3 py-2 border rounded hover:bg-gray-50 text-xs">
+        Annuler
+      </button>
+      <button id="confirmerDiffusion" class="flex-1 px-3 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-xs">
+        Prêt
+      </button>
+    </div>
+  `;
+
+  // Insérer au début de la liste des chats
+  chatsContainer.insertBefore(diffusionSection, chatsContainer.firstChild);
+
+  // Gestion de "Tout sélectionner"
+  const selectAllCheckbox = document.getElementById('selectAll');
+  const contactCheckboxes = document.querySelectorAll('.contact-checkbox');
+  
+  selectAllCheckbox.addEventListener('change', () => {
+    contactCheckboxes.forEach(checkbox => {
+      checkbox.checked = selectAllCheckbox.checked;
+    });
+  });
+
+  contactCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', () => {
+      const checkedCount = Array.from(contactCheckboxes).filter(cb => cb.checked).length;
+      selectAllCheckbox.checked = checkedCount === contactCheckboxes.length;
+      selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < contactCheckboxes.length;
+    });
+  });
+
+ 
+
+  // Événements pour les boutons
+  document.getElementById('fermerDiffusion').addEventListener('click', () => {
+    diffusionSection.remove();
+    diffusionActive = false;
+    // Restaurer le titre du chat
+    afficherNomEnHaut();
+  });
+
+  document.getElementById('annulerDiffusion').addEventListener('click', () => {
+    diffusionSection.remove();
+    diffusionActive = false;
+    // Restaurer le titre du chat
+    afficherNomEnHaut();
+  });
+  
+  document.getElementById('confirmerDiffusion').addEventListener('click', () => {
+    contactsSelectionnes = [];
+    
+    contactCheckboxes.forEach((checkbox, index) => {
+      if (checkbox.checked) contactsSelectionnes.push(contactsActifs[index]);
+    });
+
+    if (contactsSelectionnes.length === 0) {
+      showNotification("Sélectionnez au moins un contact.", 'warning');
       return;
     }
 
-    // Chercher la zone de discussion et la barre de recherche
-    const chatContainer = document.querySelector('.chat-container') || 
-                         document.querySelector('#chatArea') || 
-                         document.querySelector('[class*="chat"]') ||
-                         document.querySelector('[class*="discussion"]');
-    
-    const searchBar = document.querySelector('input[type="search"]') || 
-                     document.querySelector('[placeholder*="recherche" i]') ||
-                     document.querySelector('[placeholder*="search" i]');
+    // Activer le mode diffusion
+    diffusionActive = true;
+    selectedContact = null;
+    selectedGroup = null;
 
-    let targetContainer;
-    if (searchBar && chatContainer) {
-      targetContainer = searchBar.parentElement;
-    } else if (chatContainer) {
-      targetContainer = chatContainer;
-    } else {
-      targetContainer = document.querySelector('#messages')?.parentElement ||
-                       document.querySelector('.messages')?.parentElement ||
-                       document.querySelector('main') ||
-                       document.body;
-    }
-
-    const existingDiffusion = document.getElementById('diffusionSection');
-    if (existingDiffusion) {
-      existingDiffusion.remove();
-    }
-
-    // Créer la nouvelle interface de diffusion
-    const diffusionSection = document.createElement('div');
-    diffusionSection.id = 'diffusionSection';
-    diffusionSection.className = 'bg-white rounded-lg shadow border p-4 mb-4 mx-2';
-    
-    diffusionSection.innerHTML = `
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold flex items-center">
-          <i class="fas fa-broadcast-tower mr-2 text-orange-500"></i>Diffusion de message
-        </h3>
-        <button id="fermerDiffusion" class="text-gray-500 hover:text-gray-700 p-1">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      
-      <div class="mb-4">
-        <h4 class="font-medium mb-2 text-sm">Sélectionner les contacts :</h4>
-        <div class="space-y-1 max-h-32 overflow-y-auto border rounded p-2 bg-gray-50">
-          <label class="flex items-center p-1 hover:bg-white rounded cursor-pointer text-sm">
-            <input type="checkbox" id="selectAll" class="mr-2">
-            <strong>Tout sélectionner</strong>
-          </label>
-          <hr class="my-1">
-          ${contactsActifs.map((contact, index) => `
-            <label class="flex items-center p-1 hover:bg-white rounded cursor-pointer text-sm">
-              <input type="checkbox" value="${index}" class="contact-checkbox mr-2">
-              <div class="w-6 h-6 rounded-full bg-orange-500 text-white flex items-center justify-center mr-2 text-xs font-semibold">
-                ${(contact.nom[0] || '') + (contact.prenom[0] || '')}
-              </div>
-              <span>${contact.nom} ${contact.prenom}</span>
-            </label>
-          `).join('')}
+    // Modifier le titre du chat pour indiquer le mode diffusion
+    const titre = document.getElementById("chatTitle");
+    if (titre) {
+      titre.innerHTML = `
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-semibold">
+            <i class="fas fa-broadcast-tower"></i>
+          </div>
+          <div>
+            <h3 class="font-semibold text-lg text-orange-700">Mode Diffusion</h3>
+            <p class="text-sm text-gray-500">${contactsSelectionnes.length} contact(s) sélectionné(s)</p>
+          </div>
         </div>
-      </div>
-      
-      <div class="mb-4">
-        <textarea id="messageDiffusion" placeholder="Tapez votre message de diffusion ici..." 
-                  class="w-full p-3 border rounded focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none" 
-                  rows="3"></textarea>
-        <div class="text-xs text-gray-500 mt-1">
-          <span id="caractereCount">0</span>/500 caractères
-        </div>
-      </div>
-      
-      <div class="flex gap-2 justify-end">
-        <button id="annulerDiffusion" class="px-4 py-2 border rounded hover:bg-gray-50 text-sm">
-          <i class="fas fa-times mr-1"></i>Annuler
-        </button>
-        <button id="confirmerDiffusion" class="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 text-sm">
-          <i class="fas fa-paper-plane mr-1"></i>Envoyer
-        </button>
-      </div>
-    `;
-
-    // Insérer l'interface dans le bon endroit
-    if (searchBar) {
-      searchBar.parentElement.insertBefore(diffusionSection, searchBar.nextSibling);
-    } else {
-      targetContainer.insertBefore(diffusionSection, targetContainer.firstChild);
+      `;
     }
 
-    const messageTextarea = document.getElementById('messageDiffusion');
-    const caractereCount = document.getElementById('caractereCount');
-    
-    messageTextarea.addEventListener('input', () => {
-      const length = messageTextarea.value.length;
-      caractereCount.textContent = length;
-      if (length > 500) {
-        caractereCount.className = 'text-red-500 font-semibold';
-        messageTextarea.classList.add('border-red-500');
-      } else {
-        caractereCount.className = 'text-gray-500';
-        messageTextarea.classList.remove('border-red-500');
-      }
-    });
+    // Vider les messages actuels
+    const messagesContainer = document.getElementById("messages");
+    if (messagesContainer) {
+      messagesContainer.innerHTML = `
+        <div class="text-center p-4 text-gray-500">
+          <i class="fas fa-broadcast-tower text-2xl mb-2 text-orange-500"></i>
+          <p class="text-sm">Mode diffusion activé</p>
+          <p class="text-xs">Tapez votre message pour l'envoyer à ${contactsSelectionnes.length} contact(s)</p>
+        </div>
+      `;
+    }
 
-    // Gestion de "Tout sélectionner"
-    const selectAllCheckbox = document.getElementById('selectAll');
-    const contactCheckboxes = document.querySelectorAll('.contact-checkbox');
-    
-    selectAllCheckbox.addEventListener('change', () => {
-      contactCheckboxes.forEach(checkbox => {
-        checkbox.checked = selectAllCheckbox.checked;
-      });
-    });
+    // Focus sur l'input de message
+    const messageInput = document.getElementById("messageInput");
+    if (messageInput) {
+      messageInput.focus();
+      messageInput.placeholder = "Tapez votre message de diffusion...";
+    }
 
-    contactCheckboxes.forEach(checkbox => {
-      checkbox.addEventListener('change', () => {
-        const checkedCount = Array.from(contactCheckboxes).filter(cb => cb.checked).length;
-        selectAllCheckbox.checked = checkedCount === contactCheckboxes.length;
-        selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < contactCheckboxes.length;
-      });
-    });
+    showNotification(`Mode diffusion activé pour ${contactsSelectionnes.length} contact(s)`, 'success');
+  });
 
-    // Événements pour les boutons
-    document.getElementById('fermerDiffusion').addEventListener('click', () => diffusionSection.remove());
-    document.getElementById('annulerDiffusion').addEventListener('click', () => diffusionSection.remove());
-    
-    document.getElementById('confirmerDiffusion').addEventListener('click', () => {
-      const message = messageTextarea.value.trim();
-      const contactsSelectionnes = [];
+  // Modifier la fonction sendMessage pour gérer la diffusion
+  const originalSendMessage = window.sendMessage || sendMessage;
+  
+  window.sendMessage = function() {
+    const messageInput = document.getElementById("messageInput");
+    const text = messageInput.value.trim();
+    if (!text) return;
+
+    // Si le mode diffusion est actif
+    if (diffusionActive && contactsSelectionnes.length > 0) {
+      // Afficher le message de diffusion dans le chat
+      addMessage(` Diffusion vers ${contactsSelectionnes.length} contact(s): ${text}`, 'user');
       
-      contactCheckboxes.forEach((checkbox, index) => {
-        if (checkbox.checked) contactsSelectionnes.push(contactsActifs[index]);
+      // Simuler l'envoi à chaque contact
+      contactsSelectionnes.forEach((contact, index) => {
+        setTimeout(() => {
+          addMessage(` Envoyé à ${contact.nom} ${contact.prenom}`, 'bot');
+        }, (index + 1) * 2000);
       });
 
-      if (contactsSelectionnes.length === 0) {
-        showNotification("Sélectionnez au moins un contact.", 'warning');
-        return;
-      }
-      if (!message) {
-        showNotification("Entrez un message.", 'warning');
-        messageTextarea.focus();
-        return;
-      }
-      if (message.length > 500) {
-        showNotification("Message trop long (max 500 caractères).", 'warning');
-        return;
-      }
-
-      // Simuler l'envoi des messages
-      contactsSelectionnes.forEach(contact => {
-        if (typeof addMessage === 'function') {
-          addMessage(` envoyer à ${contact.nom} ${contact.prenom}: ${message}`, 'user');
+      messageInput.value = "";
+      
+      // Désactiver le mode diffusion après envoi
+      setTimeout(() => {
+        diffusionActive = false;
+        contactsSelectionnes = [];
+        diffusionSection.remove();
+        
+        // Restaurer l'interface normale
+        const messagesContainer = document.getElementById("messages");
+        if (messagesContainer) {
+          messagesContainer.innerHTML = `
+            <div class="text-center p-4 text-gray-500">
+              <i class="fas fa-comments text-2xl mb-2"></i>
+              <p class="text-sm">Sélectionnez un contact ou un groupe pour commencer une conversation</p>
+            </div>
+          `;
         }
-      });
+        
+        messageInput.placeholder = "Tapez votre message...";
+        afficherNomEnHaut();
+        
+        showNotification("Diffusion terminée avec succès", 'success');
+      }, contactsSelectionnes.length * 200 + 500);
+      
+      return;
+    }
 
-      showNotification(`Message diffusé à ${contactsSelectionnes.length} contact(s)`, 'success');
-      diffusionSection.remove();
-    });
-    messageTextarea.focus();
-    
-    diffusionSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
+    // Sinon, utiliser la fonction normale
+    originalSendMessage();
+  };
+}
 
   // ===========================
   // ÉVÉNEMENTS PRINCIPAUX
