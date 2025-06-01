@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
   
   const botReplies = [
     "Salut ! Comment ça va ?",
-    "tayy gen dead dhi",
+    "tayy gen dead dh",
     "Haha, intéressant", 
     "Tu veux en parler plus ?",
     "Je suis juste un bot",
@@ -21,150 +21,472 @@ document.addEventListener("DOMContentLoaded", () => {
   let selectedContact = null;
   let currentView = 'contacts';
   let selectedGroup = null;
-let diffusionActive = false;
-let contactsSelectionnes = [];
+  let diffusionActive = false;
+  let contactsSelectionnes = [];
+
+    let isRecording = false;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let contactsBloques = [];
+
+
+    // ===========================
+// NOUVELLES FONCTIONS - Gestion des contacts
+// ===========================
+
+function supprimerContact(contact) {
+  if (!contact) return;
+  
+  const confirmation = confirm(`ATTENTION !\n\nÊtes-vous sûr de vouloir supprimer définitivement le contact :\n${contact.nom} ${contact.prenom} ?\n\nCette action est irréversible.`);
+  
+  if (confirmation) {
+    // Supprimer le contact de la liste
+    const index = contacts.indexOf(contact);
+    if (index > -1) {
+      contacts.splice(index, 1);
+    }
+    
+    // Le retirer des contacts bloqués s'il y était
+    const blockedIndex = contactsBloques.findIndex(c => c.numero === contact.numero);
+    if (blockedIndex > -1) {
+      contactsBloques.splice(blockedIndex, 1);
+    }
+    
+    // Réinitialiser la sélection si c'était le contact sélectionné
+    if (selectedContact === contact) {
+      selectedContact = null;
+      viderDiscussion();
+      afficherNomEnHaut();
+    }
+    
+    // Rafraîchir l'affichage
+    if (currentView === 'contacts') {
+      afficherContacts();
+    }
+    
+    showNotification(`${contact.nom} ${contact.prenom} supprimé définitivement`, 'error');
+  }
+}
+
+function bloquerContact(contact) {
+  if (!contact) return;
+  
+  const confirmation = confirm(`Bloquer le contact ${contact.nom} ${contact.prenom} ?\n\nVous ne recevrez plus ses messages.`);
+  
+  if (confirmation) {
+    // Ajouter à la liste des bloqués s'il n'y est pas déjà
+    if (!contactsBloques.find(c => c.numero === contact.numero)) {
+      contactsBloques.push({...contact, dateBlocage: new Date()});
+    }
+    
+    showNotification(`${contact.nom} ${contact.prenom} bloqué`, 'warning');
+    afficherNomEnHaut(); // Actualiser l'affichage du titre
+  }
+}
+
+function debloquerContact(contact) {
+  if (!contact) return;
+  
+  const confirmation = confirm(`Débloquer le contact ${contact.nom} ${contact.prenom} ?`);
+  
+  if (confirmation) {
+    // Retirer de la liste des bloqués
+    const index = contactsBloques.findIndex(c => c.numero === contact.numero);
+    if (index > -1) {
+      contactsBloques.splice(index, 1);
+      showNotification(`${contact.nom} ${contact.prenom} débloqué`, 'success');
+      afficherNomEnHaut(); // Actualiser l'affichage du titre
+    }
+  }
+}
+
+function viderDiscussion() {
+  const messagesContainer = document.getElementById("messages");
+  if (!messagesContainer) return;
+  
+  let typeDiscussion = "";
+  let nomDiscussion = "";
+  
+  if (selectedContact) {
+    typeDiscussion = "contact";
+    nomDiscussion = `${selectedContact.nom} ${selectedContact.prenom}`;
+  } else if (selectedGroup) {
+    typeDiscussion = "groupe";
+    nomDiscussion = selectedGroup.nom;
+  } else {
+    showNotification("Aucune discussion sélectionnée", 'warning');
+    return;
+  }
+  
+  const confirmation = confirm(`Supprimer tous les messages de la discussion avec ${typeDiscussion === 'contact' ? 'le contact' : 'le groupe'} "${nomDiscussion}" ?\n\nCette action est irréversible.`);
+  
+  if (confirmation) {
+    messagesContainer.innerHTML = `
+      <div class="text-center p-4 text-gray-500">
+        <i class="fas fa-broom text-2xl mb-2 text-orange-500"></i>
+        <p class="text-sm">Discussion vidée</p>
+        <p class="text-xs">Les messages ont été supprimés</p>
+      </div>
+    `;
+    
+    showNotification(`Messages supprimés de la discussion avec ${nomDiscussion}`, 'success');
+  }
+}
+
+function estBloque(contact) {
+  return contactsBloques.some(c => c.numero === contact.numero);
+}
   // ===========================
   // CHAT - FONCTIONS
   // ===========================
   
-  function addMessage(text, from = 'user') {
-    const bubble = document.createElement("div");
-    bubble.textContent = text;
-    bubble.className = `p-3 rounded-lg shadow w-fit max-w-[90%] ${
-      from === 'user' ? 'bg-green-100 self-end text-right' : 'bg-white self-start text-left'
-    }`;
-    document.getElementById("messages").appendChild(bubble);
-    document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
-  }
-
-  function simulateBotResponse() {
-    const reply = botReplies[Math.floor(Math.random() * botReplies.length)];
-    setTimeout(() => addMessage(reply, 'bot'), 1000);
-  }
-
-  function sendMessage() {
-  const messageInput = document.getElementById("messageInput");
-  const text = messageInput.value.trim();
-  if (!text) return;
-
-  // NOUVEAU : Gestion du mode diffusion
-  if (diffusionActive && contactsSelectionnes.length > 0) {
-    // Afficher le message de diffusion dans le chat
-    addMessage(` Diffusion vers ${contactsSelectionnes.length} contact(s): ${text}`, 'user');
+  function addMessage(text, from = 'user', isVoice = false, audioBlob = null) {
+  const bubble = document.createElement("div");
+  const currentTime = new Date().toLocaleTimeString('fr-FR', { 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+  
+  // Simuler l'état de lecture (lu après 2 secondes pour les messages utilisateur)
+  const messageId = Date.now() + Math.random();
+  
+  if (isVoice && audioBlob) {
+    // Message vocal
+    const audioUrl = URL.createObjectURL(audioBlob);
+    const duration = "0:05"; // Durée simulée
     
-    // Simuler l'envoi à chaque contact
-    contactsSelectionnes.forEach((contact, index) => {
-      setTimeout(() => {
-        addMessage(` Envoyé à ${contact.nom} ${contact.prenom}`, 'bot');
-      }, (index + 1) * 200);
-    });
-
-    messageInput.value = "";
-    
-    // Désactiver le mode diffusion après envoi
+    bubble.innerHTML = `
+      <div class="flex flex-col">
+        <div class="flex items-center space-x-2 mb-1">
+          <div class="flex items-center space-x-2 bg-green-100 px-3 py-2 rounded-lg">
+            <i class="fas fa-microphone text-green-600"></i>
+            <button class="play-btn text-green-600 hover:text-green-800" data-audio="${audioUrl}">
+              <i class="fas fa-play"></i>
+            </button>
+            <div class="w-20 h-1 bg-green-200 rounded">
+              <div class="w-0 h-full bg-green-500 rounded transition-all duration-300 progress-bar"></div>
+            </div>
+            <span class="text-xs text-green-600">${duration}</span>
+          </div>
+        </div>
+        <div class="flex items-center justify-end space-x-1 text-xs text-gray-500">
+          <span>${currentTime}</span>
+          <span class="read-status" data-message-id="${messageId}">✓</span>
+        </div>
+      </div>
+    `;
+  } else {
+    // Message texte normal
+    bubble.innerHTML = `
+      <div class="flex flex-col">
+        <div class="mb-1">${text}</div>
+        <div class="flex items-center justify-end space-x-1 text-xs text-gray-500">
+          <span>${currentTime}</span>
+          ${from === 'user' ? `<span class="read-status" data-message-id="${messageId}">✓</span>` : ''}
+        </div>
+      </div>
+    `;
+  }
+  
+  bubble.className = `p-3 rounded-lg shadow w-fit max-w-[90%] ${
+    from === 'user' ? 'bg-green-100 self-end text-right' : 'bg-white self-start text-left'
+  }`;
+  
+  document.getElementById("messages").appendChild(bubble);
+  document.getElementById("messages").scrollTop = document.getElementById("messages").scrollHeight;
+  
+  // Simuler la lecture du message après 2 secondes (pour les messages utilisateur)
+  if (from === 'user') {
     setTimeout(() => {
-      diffusionActive = false;
-      contactsSelectionnes = [];
+      const statusElement = document.querySelector(`[data-message-id="${messageId}"]`);
+      if (statusElement) {
+        statusElement.textContent = '✓✓';
+        statusElement.style.color = '#10b981'; // Vert pour "lu"
+      }
+    }, 2000);
+  }
+  
+  // Gestionnaire pour les messages vocaux
+  if (isVoice) {
+    const playBtn = bubble.querySelector('.play-btn');
+    const progressBar = bubble.querySelector('.progress-bar');
+    
+    playBtn?.addEventListener('click', () => {
+      const audio = new Audio(playBtn.dataset.audio);
+      const icon = playBtn.querySelector('i');
       
-      // Supprimer l'interface de diffusion
-      const diffusionSection = document.getElementById('diffusionSection');
-      if (diffusionSection) diffusionSection.remove();
-      
-      // Restaurer l'interface normale
-      const messagesContainer = document.getElementById("messages");
-      if (messagesContainer) {
-        messagesContainer.innerHTML = `
-          <div class="text-center p-4 text-gray-500">
-            <i class="fas fa-comments text-2xl mb-2"></i>
-            <p class="text-sm">Sélectionnez un contact ou un groupe pour commencer une conversation</p>
+      if (audio.paused) {
+        audio.play();
+        icon.className = 'fas fa-pause';
+        
+        audio.addEventListener('timeupdate', () => {
+          const progress = (audio.currentTime / audio.duration) * 100;
+          progressBar.style.width = `${progress}%`;
+        });
+        
+        audio.addEventListener('ended', () => {
+          icon.className = 'fas fa-play';
+          progressBar.style.width = '0%';
+        });
+      } else {
+        audio.pause();
+        icon.className = 'fas fa-play';
+      }
+    });
+  }
+}
+
+        function simulateBotResponse() {
+        // Ne pas répondre si le contact est bloqué
+        if (selectedContact && estBloque(selectedContact)) {
+          return; // Pas de réponse du bot pour les contacts bloqués
+        }
+        
+        const reply = botReplies[Math.floor(Math.random() * botReplies.length)];
+        setTimeout(() => addMessage(reply, 'bot'), 1000);
+      }
+
+        function sendMessage() {
+        const messageInput = document.getElementById("messageInput");
+        const text = messageInput.value.trim();
+        if (!text) return;
+
+        // NOUVEAU : Gestion du mode diffusion avec heure et indicateurs
+        if (diffusionActive && contactsSelectionnes.length > 0) {
+          addMessage(`Diffusion vers ${contactsSelectionnes.length} contact(s): ${text}`, 'user');
+          
+          contactsSelectionnes.forEach((contact, index) => {
+            setTimeout(() => {
+              addMessage(`Envoyé à ${contact.nom} ${contact.prenom}`, 'bot');
+            }, (index + 1) * 200);
+          });
+
+          messageInput.value = "";
+          
+          setTimeout(() => {
+            diffusionActive = false;
+            contactsSelectionnes = [];
+            
+            const diffusionSection = document.getElementById('diffusionSection');
+            if (diffusionSection) diffusionSection.remove();
+            
+            const messagesContainer = document.getElementById("messages");
+            if (messagesContainer) {
+              messagesContainer.innerHTML = `
+                <div class="text-center p-4 text-gray-500">
+                  <i class="fas fa-comments text-2xl mb-2"></i>
+                  <p class="text-sm">Sélectionnez un contact ou un groupe pour commencer une conversation</p>
+                </div>
+              `;
+            }
+            
+            messageInput.placeholder = "Tapez votre message...";
+            afficherNomEnHaut();
+            
+            showNotification("Diffusion terminée avec succès", 'success');
+          }, contactsSelectionnes.length * 200 + 500);
+          
+          return;
+        }
+
+        // ANCIEN CODE modifié : Logique normale pour contacts/groupes avec nouveaux indicateurs
+        if (selectedContact) {
+          addMessage(`${text}`, 'user');
+        } else if (selectedGroup) {
+          addMessage(`${text}`, 'user');
+        } else {
+          showNotification("Sélectionnez un contact ou un groupe", "warning");
+          return;
+        }
+
+        messageInput.value = "";
+        simulateBotResponse();
+      }
+    function afficherNomEnHaut() {
+      const titre = document.getElementById("chatTitle");
+      if (!titre) return;
+
+      if (selectedContact) {
+        // Pour un contact individuel
+        const initials = `${selectedContact.nom[0] || ''}${selectedContact.prenom[0] || ''}`.toUpperCase();
+        const isContactBloque = estBloque(selectedContact);
+        
+        titre.innerHTML = `
+          <div class="flex items-center justify-between w-full">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-semibold">
+                ${initials}
+              </div>
+              <div>
+                <h3 class="font-semibold text-lg flex items-center">
+                  ${selectedContact.nom} ${selectedContact.prenom}
+                  ${isContactBloque ? '<span class="ml-2 text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full"><i class="fas fa-ban mr-1"></i>Bloqué</span>' : ''}
+                </h3>
+                <p class="text-sm text-gray-500">${selectedContact.numero}</p>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button id="viderDiscussionBtn" class="text-orange-500 hover:text-orange-700 p-2 rounded-full hover:bg-orange-50 transition-colors" title="Vider la discussion">
+                <i class="fas fa-broom"></i>
+              </button>
+              <button id="bloquerContactBtn" class="text-gray-800 hover:text-black p-2 rounded-full hover:bg-gray-100 transition-colors" title="${isContactBloque ? 'Débloquer le contact' : 'Bloquer le contact'}">
+                <i class="fas fa-${isContactBloque ? 'unlock' : 'ban'}"></i>
+              </button>
+              <button id="supprimerContactBtn" class="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50 transition-colors" title="Supprimer le contact">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      } else if (selectedGroup) {
+        // Pour un groupe
+        const groupInitials = `${selectedGroup.nom[0] || ''}`.toUpperCase();
+        const membresSimples = selectedGroup.membres.filter(m => !selectedGroup.admins.includes(m));
+        
+        titre.innerHTML = `
+          <div class="flex items-center justify-between w-full">
+            <div class="flex items-center space-x-3">
+              <div class="w-10 h-10 rounded-full bg-purple-500 text-white flex items-center justify-center font-semibold">
+                ${groupInitials}
+              </div>
+              <div class="flex-1">
+                <h3 class="font-semibold text-lg flex items-center">
+                  ${selectedGroup.nom}
+                </h3>
+                <div class="text-sm text-gray-600">
+                  <div class="flex flex-wrap gap-2 mt-1">
+                    ${selectedGroup.admins.map(admin => `
+                      <span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs flex items-center">
+                        <i class="fas fa-crown mr-1"></i>${admin}
+                      </span>
+                    `).join('')}
+                    ${membresSimples.map(membre => `
+                      <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs flex items-center">
+                        <i class="fas fa-user mr-1"></i>${membre}
+                      </span>
+                    `).join('')}
+                  </div>
+                  <p class="text-xs text-gray-400 mt-1">
+                    ${selectedGroup.membres.length} membre(s) • ${selectedGroup.admins.length} admin(s)
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button id="viderDiscussionBtn" class="text-orange-500 hover:text-orange-700 p-2 rounded-full hover:bg-orange-50 transition-colors" title="Vider la discussion">
+                <i class="fas fa-broom"></i>
+              </button>
+            </div>
+          </div>
+        `;
+      } else {
+        // Aucune sélection
+        titre.innerHTML = `
+          <div class="flex items-center justify-center h-16">
+            <div class="text-center text-gray-500">
+              <i class="fas fa-comments text-2xl mb-2"></i>
+              <p class="text-sm">Sélectionnez un contact ou un groupe</p>
+            </div>
           </div>
         `;
       }
       
-      messageInput.placeholder = "Tapez votre message...";
-      afficherNomEnHaut();
-      
-      showNotification("Diffusion terminée avec succès", 'success');
-    }, contactsSelectionnes.length * 200 + 500);
-    
-    return;
-  }
+      // Ajouter les événements pour les boutons
+      ajouterEvenementsIcones();
+    }
 
-  // ANCIEN CODE : Logique normale pour contacts/groupes
-  if (selectedContact) {
-    addMessage(`[À ${selectedContact.nom} ${selectedContact.prenom}] ${text}`, 'user');
-  } else if (selectedGroup) {
-    addMessage(`[Au groupe ${selectedGroup.nom}] ${text}`, 'user');
-  } else {
-    showNotification("Sélectionnez un contact ou un groupe", "warning");
-    return;
-  }
+       
 
-  messageInput.value = "";
-  simulateBotResponse();
+function ajouterEvenementsIcones() {
+  // Bouton vider discussion
+  document.getElementById('viderDiscussionBtn')?.addEventListener('click', () => {
+    viderDiscussion();
+  });
+  
+  // Bouton bloquer/débloquer contact
+  document.getElementById('bloquerContactBtn')?.addEventListener('click', () => {
+    if (selectedContact) {
+      if (estBloque(selectedContact)) {
+        debloquerContact(selectedContact);
+      } else {
+        bloquerContact(selectedContact);
+      }
+    }
+  });
+  
+  // Bouton supprimer contact
+  document.getElementById('supprimerContactBtn')?.addEventListener('click', () => {
+    if (selectedContact) {
+      supprimerContact(selectedContact);
+    }
+  });
 }
-function afficherNomEnHaut() {
-  const titre = document.getElementById("chatTitle");
-  if (!titre) return;
 
-  if (selectedContact) {
-    // Pour un contact individuel
-    const initials = `${selectedContact.nom[0] || ''}${selectedContact.prenom[0] || ''}`.toUpperCase();
-    titre.innerHTML = `
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-full bg-orange-500 text-white flex items-center justify-center font-semibold">
-          ${initials}
-        </div>
-        <div>
-          <h3 class="font-semibold text-lg">${selectedContact.nom} ${selectedContact.prenom}</h3>
-          <p class="text-sm text-gray-500">${selectedContact.numero}</p>
-        </div>
-      </div>
-    `;
-  } else if (selectedGroup) {
-    // Pour un groupe
-    const groupInitials = `${selectedGroup.nom[0] || ''}`.toUpperCase();
-    const membresSimples = selectedGroup.membres.filter(m => !selectedGroup.admins.includes(m));
+// ===========================
+// NOUVELLES FONCTIONS - Gestion des messages vocaux
+// ===========================
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder = new MediaRecorder(stream);
+    audioChunks = [];
     
-    titre.innerHTML = `
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-full bg-purple-500 text-white flex items-center justify-center font-semibold">
-          ${groupInitials}
-        </div>
-        <div class="flex-1">
-          <h3 class="font-semibold text-lg flex items-center">
-            ${selectedGroup.nom}
-          </h3>
-          <div class="text-sm text-gray-600">
-            <div class="flex flex-wrap gap-2 mt-1">
-              ${selectedGroup.admins.map(admin => `
-                <span class="bg-red-100 text-red-700 px-2 py-1 rounded-full text-xs flex items-center">
-                  <i class="fas fa-crown mr-1"></i>${admin}
-                </span>
-              `).join('')}
-              ${membresSimples.map(membre => `
-                <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs flex items-center">
-                  <i class="fas fa-user mr-1"></i>${membre}
-                </span>
-              `).join('')}
-            </div>
-            <p class="text-xs text-gray-400 mt-1">
-              ${selectedGroup.membres.length} membre(s) • ${selectedGroup.admins.length} admin(s)
-            </p>
-          </div>
-        </div>
-      </div>
-    `;
+    mediaRecorder.ondataavailable = (event) => {
+      audioChunks.push(event.data);
+    };
+    
+    mediaRecorder.onstop = () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+      
+      if (diffusionActive && contactsSelectionnes.length > 0) {
+        // Mode diffusion
+        addMessage(`🎤 Message vocal diffusé vers ${contactsSelectionnes.length} contact(s)`, 'user', true, audioBlob);
+        
+        contactsSelectionnes.forEach((contact, index) => {
+          setTimeout(() => {
+            addMessage(`🎤 Message vocal envoyé à ${contact.nom} ${contact.prenom}`, 'bot');
+          }, (index + 1) * 200);
+        });
+      } else if (selectedContact) {
+        addMessage(`🎤 Message vocal à ${selectedContact.nom} ${selectedContact.prenom}`, 'user', true, audioBlob);
+        simulateBotResponse();
+      } else if (selectedGroup) {
+        addMessage(`🎤 Message vocal au groupe ${selectedGroup.nom}`, 'user', true, audioBlob);
+        simulateBotResponse();
+      }
+      
+      // Arrêter tous les tracks du stream
+      stream.getTracks().forEach(track => track.stop());
+    };
+    
+    mediaRecorder.start();
+    isRecording = true;
+    updateRecordButton();
+    
+  } catch (error) {
+    console.error('Erreur d\'accès au microphone:', error);
+    showNotification('Erreur d\'accès au microphone', 'error');
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+    updateRecordButton();
+  }
+}
+
+function updateRecordButton() {
+  const recordBtn = document.getElementById('recordBtn');
+  if (!recordBtn) return;
+  
+  if (isRecording) {
+    recordBtn.innerHTML = '<i class="fas fa-stop text-red-500"></i>';
+    recordBtn.className = 'bg-red-100 hover:bg-red-200 p-2 rounded-full transition-colors animate-pulse';
   } else {
-    // Aucune sélection
-    titre.innerHTML = `
-      <div class="flex items-center justify-center h-16">
-        <div class="text-center text-gray-500">
-          <i class="fas fa-comments text-2xl mb-2"></i>
-          <p class="text-sm">Sélectionnez un contact ou un groupe</p>
-        </div>
-      </div>
-    `;
+    recordBtn.innerHTML = '<i class="fas fa-microphone text-gray-600"></i>';
+    recordBtn.className = 'bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors';
   }
 }
   // ===========================
@@ -247,53 +569,136 @@ function afficherNomEnHaut() {
   // ===========================
   // AFFICHAGE - CONTACTS
   // ===========================
+
+
+  function afficherContactsBloques() {
+  const liste = document.getElementById('chats');
+  if (!liste) return;
   
-  function afficherContacts() {
-    const liste = document.getElementById('chats');
-    if (!liste) return;
+  liste.innerHTML = '';
+
+  const header = document.createElement('li');
+  header.className = 'p-4 bg-red-50 border-b sticky top-0';
+  header.innerHTML = `
+    <div class="flex justify-between items-center">
+      <h3 class="font-semibold text-gray-700">
+        <i class="fas fa-ban mr-2 text-red-500"></i>Contacts bloqués (${contactsBloques.length})
+      </h3>
+      <button class="text-sm text-blue-600 hover:text-blue-800 flex items-center retour-btn">
+        <i class="fas fa-arrow-left mr-1"></i>Retour aux contacts
+      </button>
+    </div>
+  `;
+
+  liste.appendChild(header);
+
+  header.querySelector('.retour-btn').addEventListener('click', () => {
+    currentView = 'contacts';
+    afficherContacts();
+  });
+
+  if (contactsBloques.length === 0) {
+    liste.innerHTML += `
+      <li class="p-8 text-center">
+        <div class="text-gray-400">
+          <i class="fas fa-ban text-4xl mb-3 text-red-300"></i>
+          <p class="text-lg">Aucun contact bloqué</p>
+          <p class="text-sm">Les contacts que vous bloquez apparaîtront ici</p>
+        </div>
+      </li>
+    `;
+    return;
+  }
+
+  contactsBloques.forEach(c => {
+    const li = document.createElement('li');
+    li.className = 'p-4 hover:bg-gray-50 flex justify-between items-center border-b';
     
-    liste.innerHTML = '';
-    const actifs = contacts.filter(c => !c.archive);
-
-    if (actifs.length === 0) {
-      liste.innerHTML = '<li class="p-4"><p class="text-gray-400">Aucun contact actif.</p></li>';
-      return;
-    }
-
-    actifs.forEach(c => {
-      const li = document.createElement('li');
-      li.className = 'p-4 hover:bg-gray-100 cursor-pointer flex items-center justify-between';
-
-      const initials = `${c.nom[0] || ''}${c.prenom[0] || ''}`.toUpperCase();
-      li.innerHTML = `
-        <div class="flex items-center">
-          <div class="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center mr-2 font-semibold">
-            ${initials}
-          </div>
-          <div>
-            <span class="font-medium">${c.nom} ${c.prenom}</span>
-            <p class="text-sm text-gray-500">${c.numero}</p>
+    const initials = `${c.nom[0] || ''}${c.prenom[0] || ''}`.toUpperCase();
+    
+    li.innerHTML = `
+      <div class="flex items-center">
+        <div class="w-10 h-10 rounded-full bg-red-400 text-white flex items-center justify-center mr-3 font-semibold opacity-60 relative">
+          ${initials}
+          <div class="absolute -top-1 -right-1 w-4 h-4 bg-red-600 rounded-full flex items-center justify-center">
+            <i class="fas fa-ban text-xs text-white"></i>
           </div>
         </div>
-         <button class="text-sm text-orange-600 hover:bg-orange-100 px-2 py-1 rounded archive-btn">Archiver</button>
-      `;
-      
-      li.querySelector('.archive-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        archiverContact(c);
-      });
+        <div>
+          <span class="text-gray-800 font-medium">${c.nom} ${c.prenom}</span>
+          <p class="text-sm text-gray-500">${c.numero}</p>
+          <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full mt-1 inline-block">
+            <i class="fas fa-ban mr-1"></i>Bloqué le ${c.dateBlocage ? new Date(c.dateBlocage).toLocaleDateString() : ''}
+          </span>
+        </div>
+      </div>
+      <div class="flex gap-2">
+        <button class="text-sm text-green-600 hover:bg-green-100 px-3 py-1 rounded border border-green-300 unblock-btn">
+          <i class="fas fa-unlock mr-1"></i>Débloquer
+        </button>
+      </div>
+    `;
 
-      li.addEventListener('click', (e) => {
-          if (e.target.classList.contains('archive-btn')) return;
-          document.querySelectorAll('#chats li').forEach(el => el.classList.remove('bg-orange-100'));
-          li.classList.add('bg-orange-100');
-          selectedContact = c;
-          selectedGroup = null;
-          afficherNomEnHaut();
-        });
-      liste.appendChild(li);
+    li.querySelector('.unblock-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      debloquerContact(c);
+      setTimeout(() => afficherContactsBloques(), 100);
     });
+    
+    liste.appendChild(li);
+  });
+}
+ function afficherContacts() {
+  const liste = document.getElementById('chats');
+  if (!liste) return;
+  
+  liste.innerHTML = '';
+  const actifs = contacts.filter(c => !c.archive);
+
+  if (actifs.length === 0) {
+    liste.innerHTML = '<li class="p-4"><p class="text-gray-400">Aucun contact actif.</p></li>';
+    return;
   }
+
+  actifs.forEach(c => {
+    const li = document.createElement('li');
+    const isContactBloque = estBloque(c);
+    li.className = `p-4 hover:bg-gray-100 cursor-pointer flex items-center justify-between ${isContactBloque ? 'opacity-60' : ''}`;
+
+    const initials = `${c.nom[0] || ''}${c.prenom[0] || ''}`.toUpperCase();
+    li.innerHTML = `
+      <div class="flex items-center">
+        <div class="w-8 h-8 rounded-full ${isContactBloque ? 'bg-gray-400' : 'bg-orange-500'} text-white flex items-center justify-center mr-2 font-semibold relative">
+          ${initials}
+          ${isContactBloque ? '<div class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center"><i class="fas fa-ban text-xs text-white"></i></div>' : ''}
+        </div>
+        <div>
+          <span class="font-medium ${isContactBloque ? 'text-gray-500' : ''}">${c.nom} ${c.prenom}</span>
+          <p class="text-sm text-gray-500">${c.numero}</p>
+          ${isContactBloque ? '<p class="text-xs text-red-500"><i class="fas fa-ban mr-1"></i>Bloqué</p>' : ''}
+        </div>
+      </div>
+      <button class="text-sm text-orange-600 hover:bg-orange-100 px-2 py-1 rounded archive-btn">Archiver</button>
+    `;
+    
+    li.querySelector('.archive-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      archiverContact(c);
+    });
+
+    li.addEventListener('click', (e) => {
+      if (e.target.classList.contains('archive-btn')) return;
+      document.querySelectorAll('#chats li').forEach(el => el.classList.remove('bg-orange-100'));
+      li.classList.add('bg-orange-100');
+      selectedContact = c;
+      selectedGroup = null;
+      afficherNomEnHaut();
+    });
+    
+    liste.appendChild(li);
+  });
+}
+
 
   function afficherArchives() {
     const liste = document.getElementById('chats');
@@ -835,6 +1240,7 @@ function afficherNomEnHaut() {
     document.getElementById('formGroupeContainer').scrollIntoView({ behavior: 'smooth' });
     chargerMembresGroupe();
   });
+  
 
   document.getElementById('btnFermerGroupe')?.addEventListener('click', () => {
     document.getElementById('formGroupeContainer').classList.add('hidden');
@@ -885,6 +1291,27 @@ function afficherNomEnHaut() {
       showNotification("Veuillez sélectionner un contact actif à archiver.", 'info');
     }
   });
+
+  document.getElementById("recordBtn")?.addEventListener("click", () => {
+  if (!selectedContact && !selectedGroup && !diffusionActive) {
+    showNotification("Sélectionnez un contact ou un groupe", "warning");
+    return;
+  }
+  
+  if (isRecording) {
+    stopRecording();
+  } else {
+    startRecording();
+  }
+});
+
+// À ajouter dans vos événements de navigation
+document.getElementById('blockedContacts')?.addEventListener('click', () => {
+  currentView = 'blocked';
+  document.getElementById('listeContactsContainer')?.classList.remove('hidden');
+  document.getElementById('listeGroupesContainer')?.classList.add('hidden');
+  afficherContactsBloques();
+});
 
 const searchInput = document.getElementById('search');
 searchInput?.addEventListener('input', () => {

@@ -3,56 +3,286 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Connexion WhatsApp Style</title>
-  <!-- <script src="https://cdn.tailwindcss.com"></script> -->
-
+  <title>Connexion Breukhhh Web</title>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-  <link rel="stylesheet" href="style.css" />
-  <link rel="stylesheet" href="index.css" />
-  <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          animation: {
+            'float': 'float 15s infinite linear',
+            'bounce-slow': 'bounce 2s ease-in-out infinite',
+            'slide-in': 'slideIn 0.8s ease-out',
+            'shake': 'shake 0.5s ease-in-out',
+            'shimmer': 'shimmer 2s infinite',
+            'spin-slow': 'spin 2s linear infinite',
+            'fade-in': 'fadeIn 0.3s ease-out',
+            'checkmark': 'checkmark 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards',
+            'stroke': 'stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards',
+            'scale': 'scale 0.3s ease-in-out 0.9s both',
+            'fill': 'fill 0.4s ease-in-out 0.4s forwards'
+          },
+          keyframes: {
+            float: {
+              '0%': { transform: 'translateY(100vh) rotate(0deg)', opacity: '0' },
+              '10%': { opacity: '1' },
+              '90%': { opacity: '1' },
+              '100%': { transform: 'translateY(-100vh) rotate(360deg)', opacity: '0' }
+            },
+            slideIn: {
+              from: { opacity: '0', transform: 'translateY(50px) scale(0.9)' },
+              to: { opacity: '1', transform: 'translateY(0) scale(1)' }
+            },
+            shake: {
+              '0%, 100%': { transform: 'translateX(0)' },
+              '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-10px)' },
+              '20%, 40%, 60%, 80%': { transform: 'translateX(10px)' }
+            },
+            shimmer: {
+              '0%': { transform: 'translateX(-100%)' },
+              '100%': { transform: 'translateX(100%)' }
+            },
+            fadeIn: {
+              from: { opacity: '0', transform: 'translateY(-10px)' },
+              to: { opacity: '1', transform: 'translateY(0)' }
+            },
+            checkmark: {
+              '0%': { 'stroke-dashoffset': '48' },
+              '100%': { 'stroke-dashoffset': '0' }
+            },
+            stroke: {
+              '100%': { 'stroke-dashoffset': '0' }
+            },
+            scale: {
+              '0%, 100%': { transform: 'none' },
+              '50%': { transform: 'scale3d(1.1, 1.1, 1)' }
+            },
+            fill: {
+              '100%': { 'box-shadow': 'inset 0px 0px 0px 30px #16a34a' }
+            }
+          },
+          backdropBlur: {
+            xs: '2px',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .gradient-orange {
+      background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+    }
+    
+    .text-shadow {
+      text-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    .glass {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
+    
+    .particle {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    
+    .shimmer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      animation: shimmer 2s infinite;
+    }
+    
+    .input-focus:focus {
+      transform: translateY(-2px);
+      box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1), 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-hover:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(255, 107, 53, 0.3);
+    }
+    
+    .rotating-bg::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+      animation: spin-slow;
+    }
+    
+    .checkmark {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-block;
+      stroke-width: 2;
+      stroke: #16a34a;
+      stroke-miterlimit: 10;
+      margin-right: 8px;
+    }
+    
+    .checkmark__circle {
+      stroke-dasharray: 166;
+      stroke-dashoffset: 166;
+      stroke-width: 2;
+      stroke-miterlimit: 10;
+      stroke: #16a34a;
+      fill: none;
+      animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+    }
+    
+    .checkmark__check {
+      transform-origin: 50% 50%;
+      stroke-dasharray: 48;
+      stroke-dashoffset: 48;
+      animation: checkmark 0.3s cubic-bezier(0.65, 0, 0.45, 1) 0.8s forwards;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+<body class="gradient-bg min-h-screen flex items-center justify-center overflow-hidden relative">
+  
+  <!-- Animated background particles -->
+  <div class="absolute inset-0 overflow-hidden pointer-events-none" id="particles"></div>
 
-  <div class="flex flex-col md:flex-row bg-white shadow-lg rounded-lg overflow-hidden w-full max-w-4xl">
+  <!-- Main container -->
+  <div class="relative z-10 flex glass rounded-3xl shadow-2xl overflow-hidden w-full max-w-4xl min-h-[600px] animate-slide-in">
     
     <!-- Left section -->
-    <div class="bg-orange-600 text-white flex flex-col justify-center items-center p-10 md:w-1/2">
-      <h1 class="text-4xl font-bold mb-4">WhatsApp Web</h1>
-      <p class="text-center">Connectez-vous pour accéder à vos messages</p>
+    <div class="gradient-orange text-white flex flex-col justify-center items-center p-10 md:w-1/2 relative overflow-hidden">
+      <div class="rotating-bg"></div>
+      
+      <div class="relative z-10 text-center animate-bounce-slow">
+        <i class="fas fa-comments text-6xl mb-6 text-shadow"></i>
+        <h1 class="text-4xl font-bold mb-4 text-shadow">Breukhhh Web</h1>
+        <p class="text-lg opacity-90 leading-relaxed">
+          Connectez-vous pour accéder à vos messages et rejoindre la conversation
+        </p>
+      </div>
+      
+      <!-- Floating icons -->
+      <div class="absolute top-10 left-10 text-3xl opacity-20 animate-bounce" style="animation-delay: 0.5s;">
+        <i class="fas fa-heart"></i>
+      </div>
+      <div class="absolute bottom-10 right-10 text-2xl opacity-20 animate-bounce" style="animation-delay: 1s;">
+        <i class="fas fa-star"></i>
+      </div>
+      <div class="absolute top-1/2 left-5 text-2xl opacity-20 animate-bounce" style="animation-delay: 1.5s;">
+        <i class="fas fa-thumbs-up"></i>
+      </div>
     </div>
 
     <!-- Right section -->
-    <div class="p-8 md:w-1/2 w-full">
-      <h2 class="text-2xl font-semibold text-gray-700 mb-6 text-center">Connexion</h2>
-      <form id="loginForm" class="space-y-4">
-        <div>
-          <label for="username" class="block text-sm text-gray-600 mb-1">Nom d'utilisateur</label>
-          <input type="text" id="username" class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-orange-400">
-        </div>
-        <div>
-          <label for="password" class="block text-sm text-gray-600 mb-1">Mot de passe</label>
-          <div style="position:relative;">
-            <input type="password" id="password" class="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-orange-400 pr-10">
-            <span id="togglePassword" style="position:absolute;top:50%;right:10px;transform:translateY(-50%);cursor:pointer;">
-              <i class="fas fa-eye"></i>
-            </span>
+    <div class="flex-1 p-12 flex flex-col justify-center">
+      
+      <!-- Form title -->
+      <div class="text-center mb-8">
+        <h2 class="text-3xl font-bold text-gray-800 mb-3">Connexion</h2>
+        <div class="w-16 h-1 gradient-orange rounded-full mx-auto"></div>
+      </div>
+
+      <!-- Login form -->
+      <form id="loginForm" class="space-y-6">
+        
+        <!-- Username field -->
+        <div class="group">
+          <label for="username" class="block text-sm font-medium text-gray-600 mb-2 group-focus-within:text-orange-500 transition-colors duration-300">
+            Nom d'utilisateur
+          </label>
+          <div class="relative">
+            <i class="fas fa-user absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors duration-300"></i>
+            <input 
+              type="text" 
+              id="username" 
+              class="w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:border-orange-400 focus:outline-none transition-all duration-300 input-focus text-gray-800 placeholder-gray-400"
+              placeholder="Entrez votre nom d'utilisateur"
+              
+            >
           </div>
         </div>
-        <p id="errorMsg" class="text-red-500 text-sm hidden text-center">Identifiants incorrects</p>
-        <!-- ...dans la <div> contenant le formulaire, avant le bouton -->
-          <p id="successMsg" class="text-green-600 text-sm hidden text-center font-medium"></p>
 
-        <button type="submit" class="w-full bg-orange-600 text-white py-2 rounded hover:bg-orange-700 transition">Se connecter</button>
+        <!-- Password field -->
+        <div class="group">
+          <label for="password" class="block text-sm font-medium text-gray-600 mb-2 group-focus-within:text-orange-500 transition-colors duration-300">
+            Mot de passe
+          </label>
+          <div class="relative">
+            <i class="fas fa-lock absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-orange-500 transition-colors duration-300"></i>
+            <input 
+              type="password" 
+              id="password" 
+              class="w-full pl-12 pr-12 py-4 border-2 border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:border-orange-400 focus:outline-none transition-all duration-300 input-focus text-gray-800 placeholder-gray-400"
+              placeholder="Entrez votre mot de passe"
+            
+            >
+            <i class="fas fa-eye absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-orange-500 cursor-pointer transition-colors duration-300" id="togglePassword"></i>
+          </div>
+        </div>
+
+        <!-- Error message -->
+        <div id="errorMsg" class="hidden bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-center animate-fade-in">
+          <i class="fas fa-exclamation-circle mr-2"></i>
+          Identifiants incorrects
+        </div>
+
+        <!-- Success message -->
+        <div id="successMsg" class="hidden bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-xl text-center animate-fade-in flex items-center justify-center">
+          <svg class="checkmark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+            <circle class="checkmark__circle" cx="26" cy="26" r="25" fill="none"/>
+            <path class="checkmark__check" fill="none" d="m14.1 27.2l7.1 7.2 16.7-16.8"/>
+          </svg>
+          Connexion réussie ! Redirection en cours...
+        </div>
+
+        <!-- Submit button -->
+        <button 
+          type="submit" 
+          id="submitBtn"
+          class="w-full gradient-orange text-white py-4 rounded-xl font-semibold text-lg transition-all duration-300 btn-hover shimmer relative overflow-hidden group"
+        >
+          <span class="relative z-10 flex items-center justify-center">
+            <i class="fas fa-sign-in-alt mr-2"></i>
+            Se connecter
+          </span>
+          <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700"></div>
+        </button>
+        
+        <!-- Additional options -->
+        <div class="text-center mt-6">
+          <a href="#" class="text-orange-500 hover:text-orange-600 text-sm font-medium transition-colors duration-300 hover:underline">
+            Mot de passe oublié ?
+          </a>
+        </div>
       </form>
     </div>
   </div>
 
-  <script src="login.js"></script>
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center hidden">
+    <div class="bg-white rounded-2xl p-8 flex flex-col items-center space-y-4">
+      <div class="animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-500"></div>
+      <p class="text-gray-600 font-medium">Connexion en cours...</p>
+    </div>
+  </div>
+
+  <script>
+   
+  </script>
 </body>
+<script src="login.js"></script>
 </html>
-
-<script>
-
-
-
-</script>

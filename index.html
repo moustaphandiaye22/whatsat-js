@@ -9,77 +9,138 @@
   <link rel="stylesheet" href="src/style.css" />
   <link rel="stylesheet" href="src/index.css" />
   <link href='https://cdn.boxicons.com/fonts/basic/boxicons.min.css' rel='stylesheet'>
+  <style>
+    /* Styles personnalisés pour la responsivité */
+    @media (max-width: 768px) {
+      .sidebar-mobile {
+        position: fixed;
+        left: -100%;
+        top: 0;
+        height: 100vh;
+        z-index: 50;
+        transition: left 0.3s ease;
+      }
+      .sidebar-mobile.open {
+        left: 0;
+      }
+      .overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 40;
+        display: none;
+      }
+      .overlay.active {
+        display: block;
+      }
+    }
+    
+    /* Fix pour les icônes */
+    .icon-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.25rem;
+    }
+    
+    /* Amélioration du scroll */
+    .custom-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 2px;
+    }
+  </style>
 </head>
 
 <body class="bg-gray-100">
-  <div class="w-10/12 bg-gray-200 shadow-md m-10 mb-11 h-3/4 mx-auto rounded-xl">
-    <div class="flex h-screen">
+  <!-- Overlay pour mobile -->
+  <div id="overlay" class="overlay"></div>
+  
+  <!-- Bouton menu mobile -->
+  <button id="mobileMenuBtn" class="md:hidden fixed top-4 left-4 z-50 bg-orange-400 text-white p-2 rounded-lg">
+    <i class="fas fa-bars"></i>
+  </button>
+
+  <div class="w-full md:w-10/12 bg-gray-200 shadow-md md:m-10 md:mb-11 h-screen md:h-3/4 md:mx-auto md:rounded-xl">
+    <div class="flex h-full">
       
       <!-- Sidebar -->
-      <aside class="w-40 bg-[#f0efe8] shadow-md overflow-y-auto">
-        <div class="mt-60 px-2">
-          <div id="btnMessage" class="p-4 border border-orange-300 rounded-xl shadow-md flex flex-col items-center mb-2 cursor-pointer hover:bg-gray-100">
-            <i class="fas fa-envelope text-xl"></i>
-            <span class="text-xs mt-1">Messages</span>
+      <aside id="sidebar" class="w-16 md:w-40 bg-[#f0efe8] shadow-md overflow-y-auto custom-scroll sidebar-mobile">
+        <div class="mt-20 md:mt-60 px-1 md:px-2">
+          <div id="btnMessage" class="p-2 md:p-4 border border-orange-300 rounded-xl shadow-md icon-container mb-2 cursor-pointer hover:bg-gray-100 transform hover:scale-105 transition-all duration-200 ease-in-out">
+            <i class="fas fa-envelope text-lg md:text-xl"></i>
+            <span class="text-xs mt-1 hidden md:block">Messages</span>
           </div>
-          <div id="btnGroupe" class="p-4 border border-orange-300 rounded-xl shadow-md flex flex-col items-center mb-2 cursor-pointer hover:bg-gray-100">
-            <i class="fas fa-user-group text-xl"></i>
-            <span class="text-xs mt-1">Groupes</span>
+          <div id="btnGroupe" class="p-2 md:p-4 border border-orange-300 rounded-xl shadow-md icon-container mb-2 cursor-pointer hover:bg-gray-100 transform hover:scale-105 transition-all duration-200 ease-in-out">
+            <i class="fas fa-user-group text-lg md:text-xl"></i>
+            <span class="text-xs mt-1 hidden md:block">Groupes</span>
           </div>
-          <div id="btnDiffusion" class="p-4 border border-orange-300 rounded-xl shadow-md flex flex-col items-center mb-2 cursor-pointer hover:bg-gray-100">
-              <i class="fa-solid fa-arrows-turn-to-dots"></i>     
-                <span class="text-xs mt-1">Diffusion</span>
+          <div id="btnDiffusion" class="p-2 md:p-4 border border-orange-300 rounded-xl shadow-md icon-container mb-2 cursor-pointer hover:bg-gray-100 transform hover:scale-105 transition-all duration-200 ease-in-out">
+            <i class="fa-solid fa-arrows-turn-to-dots text-lg md:text-xl"></i>     
+            <span class="text-xs mt-1 hidden md:block">Diffusion</span>
           </div>
-          <div id="archivedContacts" class="p-4 border border-orange-300 rounded-xl shadow-md flex flex-col items-center mb-2 cursor-pointer hover:bg-gray-100">
-              <i class="fas fa-archive text-xl"></i>
-              <span class="text-xs mt-1">Archives</span>
-            </div>
-
-          <div id="btnNouveau" class="p-4 border border-orange-300 rounded-xl shadow-md flex flex-col items-center mb-2 cursor-pointer hover:bg-gray-100">
-            <i class="fas fa-plus text-xl"></i>
-            <span class="text-xs mt-1">Nouveau</span>
+          <div id="archivedContacts" class="p-2 md:p-4 border border-orange-300 rounded-xl shadow-md icon-container mb-2 cursor-pointer hover:bg-gray-100  transform hover:scale-105 transition-all duration-200 ease-in-out">
+            <i class="fas fa-archive text-lg md:text-xl"></i>
+            <span class="text-xs mt-1 hidden md:block">Archives</span>
           </div>
+          <div id="btnNouveau" class="p-2 md:p-4 border border-orange-300 rounded-xl shadow-md icon-container mb-2 cursor-pointer hover:bg-gray-100 transform hover:scale-105 transition-all duration-200 ease-in-out">
+            <i class="fas fa-plus text-lg md:text-xl"></i>
+            <span class="text-xs mt-1 hidden md:block">Nouveau</span>
+          </div>
+         
           <!-- Bouton Déconnexion -->
-            <button id="logoutBtn" class="bg-red-500 text-white mt-10 px-3 py-1 rounded hover:bg-red-600 text-sm flex items-center gap-1">
-              <i class="fas fa-sign-out-alt"></i> Déconnexion
-            </button>
+          <button id="logoutBtn" class="bg-red-500 text-white mt-10 px-2 md:px-3 py-1 rounded hover:bg-red-600 text-xs md:text-sm flex items-center gap-1 w-full justify-center transform hover:scale-105 transition-all duration-200 ease-in-out">
+            <i class="fas fa-sign-out-alt"></i> 
+            <span class="hidden md:inline">Déconnexion</span>
+          </button>
         </div>
       </aside>
 
       <!-- Liste des discussions -->
-      <aside class="w-2/5 bg-white shadow-md overflow-y-auto">
-        <div class="p-4 border-b">
+      <aside class="w-full md:w-2/5 bg-white shadow-md overflow-y-auto custom-scroll lg:block hidden md:block">
+        <div class="p-4 border-b flex items-center justify-between">
           <h2 class="text-xl font-bold">Discussions</h2>
+           
         </div>
         <div class="p-4 border-b">
-          <input type="text" id="search" placeholder="Rechercher..." class="w-full p-2 border rounded-xl focus:outline-none" />
+          <input type="text" id="search" placeholder="Rechercher..." class="w-full p-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-400" />
         </div>
         <div class="p-4">
           <button type="button" id="contactList" class="px-4 py-1 bg-orange-400 text-white rounded-full hover:bg-orange-700 text-sm mb-2">Liste contact</button>
           <button id="toggleGroupes" class="px-4 py-1 text-md font-semibold hover:underline  bg-orange-400 text-white rounded-full hover:bg-orange-700 text-sm  mb-2">
             Liste des groupes </button>
+            <button id="blockedContacts" class="px-4 py-1 bg-orange-400 text-white rounded-full hover:bg-orange-700 text-sm mb-2">
+            <!-- <i class="fas fa-ban text-red-500"></i> -->
+            <span>Contacts bloqués</span>
+          </button>
 
-        <!-- Liste masquée au départ -->
-        <div id="listeGroupesContainer" class="hidden">
-          <ul id="listeGroupes" class="space-y-2"></ul>
-        </div>
-
-        </div>
-
-          <!-- Conteneur masqué par défaut -->
-          <div id="listeContactsContainer" >
-            <ul id="chats" class="divide-y">
-              <li class="p-4 hover:bg-gray-100 cursor-pointer flex items-center">
-                <img src="https://avatars.githubusercontent.com/u/12345678?v=4" alt="Avatar" class="w-8 h-8 rounded-full mr-2" />
-                <span>Tapha</span>
-              </li>
-              <li class="p-4 hover:bg-gray-100 cursor-pointer flex items-center">
-                <img src="https://avatars.githubusercontent.com/u/12345?v=4" alt="Avatar" class="w-8 h-8 rounded-full mr-2" />
-                <span>AWA</span>
-              </li>
-            </ul>
+          <!-- Liste masquée au départ -->
+          <div id="listeGroupesContainer" class="hidden">
+            <ul id="listeGroupes" class="space-y-2"></ul>
           </div>
+        </div>
 
+        <!-- Conteneur masqué par défaut -->
+        <div id="listeContactsContainer">
+          <ul id="chats" class="divide-y">
+            <li class="p-4 hover:bg-gray-100 cursor-pointer flex items-center">
+              <img src="https://avatars.githubusercontent.com/u/12345678?v=4" alt="Avatar" class="w-8 h-8 rounded-full mr-2" />
+              <span class="truncate">Tapha</span>
+            </li>
+            <li class="p-4 hover:bg-gray-100 cursor-pointer flex items-center">
+              <img src="https://avatars.githubusercontent.com/u/12345?v=4" alt="Avatar" class="w-8 h-8 rounded-full mr-2" />
+              <span class="truncate">AWA</span>
+            </li>
+          </ul>
+        </div>
 
         <!-- Formulaire contact -->
         <div id="formContainer" class="p-4 border-t hidden">
@@ -91,12 +152,13 @@
                <div class="text-red-500 text-sm" id="errorPrenomContact"></div>
 
               <input type="number" placeholder="Numéro" class="w-full border p-2 rounded" />
-               <div class="text-red-500 text-sm" id="errorNumeroContact"></div>
+            <div class="text-red-500 text-sm" id="errorNumeroContact"></div>
 
             <div class="flex justify-end gap-2">
               <button type="button" id="btnFermer" class="px-4 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm">Annuler</button>
               <button type="submit" class="px-4 py-1 bg-orange-400 text-white rounded hover:bg-orange-500 text-sm">Ajouter</button>
-            </form>
+            </div>
+          </form>
         </div>
 
         <!-- Formulaire groupe -->
@@ -114,7 +176,6 @@
                   </div>
                   <div class="text-red-500 text-sm" id="errorMembresGroupe"></div>
 
-
             <div class="flex justify-end gap-2">
               <button type="button" id="btnFermerGroupe" class="px-4 py-1 bg-gray-300 rounded hover:bg-gray-400 text-sm">Annuler</button>
               <button type="submit" class="px-4 py-1 bg-orange-400 text-white rounded hover:bg-orange-600 text-sm">Créer</button>
@@ -124,7 +185,7 @@
       </aside>
 
       <!-- Zone de chat -->
-      <main class="flex-1 flex flex-col bg-[#efe7d7]">
+      <main class="flex-1 flex flex-col bg-[#efe7d7] ml-0 md:ml-0">
         <header class="bg-white p-4 border-b flex items-center gap-2">
           <!-- <img src="https://avatars.githubusercontent.com/u/12345?v=4" alt="Avatar" class="w-8 h-8 rounded-full mr-2" /> -->
           <!-- <span class="font-medium">Breukhhh</span> -->
@@ -144,33 +205,105 @@
         </section>
 
         <footer class="p-4 bg-white flex gap-2 border-t">
-          <input type="text" id="messageInput" placeholder="Écrire un message..." class="flex-1 p-2 border rounded-lg focus:outline-none" />
+          <!-- <input type="text" id="messageInput" placeholder="Écrire un message..." class="flex-1 p-2 border rounded-lg focus:outline-none" />
           <button id="sendBtn" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">
             <i class="fas fa-arrow-right"></i>
-          </button>
+          </button> -->
+          <div class="flex items-center w-full space-x-2 p-3 border-t">
+            <button id="recordBtn" class="bg-gray-100 hover:bg-gray-200 p-2 rounded-full transition-colors">
+              <i class="fas fa-microphone text-gray-600"></i>
+            </button>
+            <input type="text" id="messageInput" placeholder="Tapez votre message..." 
+                  class="flex-1 border rounded-full px-4 py-2 focus:outline-none focus:border-green-500"/>
+            <button id="sendBtn" class="bg-green-500 hover:bg-green-600 text-white p-2 rounded-full">
+              <i class="fas fa-arrow-right"></i>
+            </button>
+          </div>
         </footer>
       </main>
 
     </div>
   </div>
-<script>
-  if (localStorage.getItem("isLoggedIn") !== "true") {
-    window.location.href = "src/login.html";
-  }
 
-  // Déconnexion
-  document.addEventListener("DOMContentLoaded", function() {
-    const logoutBtn = document.getElementById("logoutBtn");
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", function() {
-        localStorage.removeItem("isLoggedIn");
+  <script>
+    // Vérification de la connexion
+    if (typeof(Storage) !== "undefined") {
+      if (localStorage.getItem("isLoggedIn") !== "true") {
         window.location.href = "src/login.html";
-      });
+      }
     }
-  });
-</script>
-<script  src="src/main.js"></script>
-<!-- <script src="src/controllers.js"></script> -->
 
+    // Gestion de la responsivité mobile
+    document.addEventListener("DOMContentLoaded", function() {
+      const mobileMenuBtn = document.getElementById("mobileMenuBtn");
+      const showContactsBtn = document.getElementById("showContactsBtn");
+      const sidebar = document.getElementById("sidebar");
+      const overlay = document.getElementById("overlay");
+      const contactsList = document.querySelector("aside:nth-child(2)");
+      
+      // Fonction pour fermer les menus
+      function closeMenus() {
+        sidebar.classList.remove("open");
+        contactsList.classList.add("hidden", "md:block");
+        overlay.classList.remove("active");
+      }
+      
+      // Menu mobile principal
+      if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener("click", function() {
+          sidebar.classList.toggle("open");
+          overlay.classList.toggle("active");
+        });
+      }
+      
+      // Bouton pour afficher les contacts sur mobile
+      if (showContactsBtn) {
+        showContactsBtn.addEventListener("click", function() {
+          contactsList.classList.toggle("hidden");
+          contactsList.classList.toggle("md:block");
+        });
+      }
+      
+      // Fermer avec overlay
+      if (overlay) {
+        overlay.addEventListener("click", closeMenus);
+      }
+      
+      // Fermer avec Escape
+      document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") {
+          closeMenus();
+        }
+      });
+
+      // Déconnexion
+      const logoutBtn = document.getElementById("logoutBtn");
+      if (logoutBtn) {
+        logoutBtn.addEventListener("click", function() {
+          if (typeof(Storage) !== "undefined") {
+            localStorage.removeItem("isLoggedIn");
+          }
+          window.location.href = "src/login.html";
+        });
+      }
+      
+      // Gestion responsive automatique
+      function handleResize() {
+        if (window.innerWidth >= 768) {
+          closeMenus();
+          contactsList.classList.remove("hidden");
+          contactsList.classList.add("md:block");
+        } else {
+          contactsList.classList.add("hidden");
+        }
+      }
+      
+      window.addEventListener("resize", handleResize);
+      handleResize(); // Appel initial
+    });
+  </script>
+  
+  <!-- Script principal -->
+  <script src="src/main.js"></script>
 </body>
 </html>
