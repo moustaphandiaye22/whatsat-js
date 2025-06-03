@@ -1,15 +1,23 @@
 {
   "rewrites": [
     {
+      "source": "/src/login.html",
+      "destination": "/src/login.html"
+    },
+    {
       "source": "/login.html",
-      "destination": "/login.html"
+      "destination": "/src/login.html"
     },
     {
       "source": "/",
-      "destination": "/login.html"
+      "destination": "/src/login.html"
     },
     {
-      "source": "/(.*)",
+      "source": "/index.html",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/app",
       "destination": "/index.html"
     }
   ],
