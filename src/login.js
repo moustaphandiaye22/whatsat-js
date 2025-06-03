@@ -44,7 +44,7 @@ document.getElementById("loginForm").addEventListener("submit", function (e) {
     successMsg.classList.remove("hidden");
 
     setTimeout(() => {
-        window.location.href = "../index.html";
+        window.location.href = "./index.html";
     }, 1500); 
   } else {
     errorMsg.textContent = "Nom d'utilisateur ou mot de passe incorrect.";
