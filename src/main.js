@@ -325,7 +325,7 @@ function estBloque(contact) {
                 <p class="text-sm text-gray-500">${selectedContact.numero}</p>
               </div>
             </div>
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2 ml-96">
               <button id="viderDiscussionBtn" class="text-orange-500 hover:text-orange-700 p-2 rounded-full hover:bg-orange-50 transition-colors" title="Vider la discussion">
                 <i class="fas fa-broom"></i>
               </button>
